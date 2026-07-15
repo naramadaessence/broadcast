@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env*.local
+
+# Build output
+dist/
+build/
+
+# Data
+data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Vite temp files
+vite.config.js.timestamp-*
+
+# Sensitive credentials (keep local only)
+knowledge-base/CREDENTIALS_AND_INFRA.md
+
+# Uploads
+backend/uploads/
+
+# Test output / artifacts
+output/

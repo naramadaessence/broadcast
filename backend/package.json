@@ -1,0 +1,36 @@
+{
+    "name": "whatsapp-broadcast-api",
+    "version": "1.0.0",
+    "description": "WhatsApp Broadcast SaaS - Backend API",
+    "main": "src/index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node src/server.js",
+        "dev": "node --watch src/server.js",
+        "test": "node --test test/*.test.js",
+        "postinstall": "node -e \"const fs = require('fs'); const p = 'node_modules/onnxruntime-node/bin/napi/v3'; if (fs.existsSync(p)) { ['darwin', 'win32', 'darwin-arm64'].forEach(d => fs.rmSync(p + '/' + d, {recursive: true, force: true})); }\""
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "dependencies": {
+        "@huggingface/transformers": "^4.2.0",
+        "@vitalets/google-translate-api": "^9.2.1",
+        "any-ascii": "^0.3.3",
+        "bcryptjs": "^2.4.3",
+        "bing-translate-api": "^4.2.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.1",
+        "express": "^4.18.2",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^9.7.2",
+        "multer": "^2.2.0",
+        "openai": "^6.45.0",
+        "razorpay": "^2.9.6",
+        "socket.io": "^4.8.3",
+        "transliteration": "^2.6.1"
+    },
+    "overrides": {
+        "ws": "^8.21.0"
+    }
+}
