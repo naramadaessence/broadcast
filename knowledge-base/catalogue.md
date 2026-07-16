@@ -17,7 +17,6 @@ same retailer/content ID that WhatsApp product messages use.
 | `backend/src/routes/products.js` | Product CRUD, image serving, Meta import, and bulk WhatsApp catalogue publishing routes. |
 | `backend/src/services/metaCatalogSync.js` | Low-level Meta `items_batch` upsert/delete helper used by the product routes. |
 | `backend/src/utils/productCatalogue.js` | Shared description sanitizer and price normalization helpers for imports, publishing, bot replies, and repair scripts. |
-| `backend/src/utils/productMediaSelection.js` | Selects trusted stored media only for one explicit SKU or complete unique product name. |
 | `backend/src/models/Product.js` | Local Mongo product document, including `sku`, `meta_product_id`, image URLs, prices, and inventory fields. |
 | `backend/src/models/Image.js` | Stores uploaded product image binary data in MongoDB so Meta crawlers can fetch stable image URLs on Vercel. |
 | `backend/src/routes/webhook.js` | Sends native WhatsApp single-product messages using `whatsapp_catalog_id` and `product.sku`. |
@@ -43,21 +42,12 @@ same retailer/content ID that WhatsApp product messages use.
 - Keep product images publicly fetchable through
   `/api/v1/products/images/:filename`; Vercel temp files are not durable enough
   for Meta image crawlers.
-- DeepSeek product answers remain text. After generation, application code may
-  attach the stored image only for one exact unique SKU or complete unique
-  multi-word product name from the latest customer message.
-- Broad product-family/category questions, comparisons, duplicate identifiers,
-  and generic single-word product names must not select one arbitrary image.
-- Pass public image URLs to `sendMediaMessage()` as strings. Objects are reserved
-  for `{ id: <Meta media id> }`.
 
 ## Known Gotchas
 
 - Dashboard visibility and WhatsApp customer visibility are separate states.
   The dashboard can show products imported from Meta even before they are
   queued for WhatsApp publishing.
-- Including `Image URL` in DeepSeek context does not send media. The webhook can
-  attach media only after deterministic product identity validation.
 - The configured `whatsapp_catalog_id` must be the catalogue connected to the
   client's WhatsApp Business account/phone number. If the wrong catalogue is
   configured, the dashboard may still import products while WhatsApp customers
@@ -90,9 +80,6 @@ same retailer/content ID that WhatsApp product messages use.
   WhatsApp publishing, parse comma-grouped price strings correctly, strip HTML
   descriptions before publishing/replies, normalize outbound prices, report push
   failures, and show the frontend action as `Publish to WhatsApp`.
-- `backend/test/product-media.test.js` covers exact SKU/name selection, broad and
-  multi-product rejection, duplicate identifiers, trusted stored image URLs, and
-  the WhatsApp `image.link` payload.
 - Full local verification for this subsystem should include:
   - `cd backend && npm test`
   - backend `node --check` sweep

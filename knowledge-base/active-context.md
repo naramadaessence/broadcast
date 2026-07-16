@@ -1,10 +1,9 @@
 ## Current Status
-**Last Updated**: 2026-07-16
-**Last Agent Session**: Completed a local-only surgical fix from rollback commit `1c2ca31`: `llmResponder.js` remains unchanged, exact product media is selected outside DeepSeek, stored URLs are sent as WhatsApp links with the original answer as caption, and media failures fall back to the same text. Nothing from this branch has been pushed.
-**Test Suite Status**: PASS - backend 43/43, backend syntax sweep, and backend audit with 0 vulnerabilities; frontend lint with 0 errors and 10 pre-existing warnings, production build, and frontend audit with 0 vulnerabilities.
+**Last Updated**: 2026-07-15
+**Last Agent Session**: Reset repository git history to a single clean commit with the current production codebase and force-pushed to `https://github.com/naramadaessence/broadcast.git` (`new_origin`).
+**Test Suite Status**: PASS - `cd backend && npm test` (33 tests); PASS - backend `node --check` across `backend/src/**/*.js`; PASS - `cd frontend && npm run lint` (10 warnings, 0 errors); PASS - `cd frontend && npm run build`.
 
 ## In Progress
-- [x] Complete and verify the exact-product image attachment fix without changing DeepSeek prompt or broad product-family behavior.
 - [ ] Verify the customer-side WhatsApp catalogue after Meta finishes async catalogue processing. If products still do not appear, check Meta Commerce Manager catalogue diagnostics and that the configured catalogue is attached to the WhatsApp account/phone storefront.
 - [ ] After deploy, smoke-test live Vercel no-match triage on `https://broadcast-gilt.vercel.app/`: send `fdrdfvdf` or `LALALALA` and confirm the bot sends the plain retry text without Needs Human; send a meaningful unsupported business question and confirm the Yes/No handoff prompt still appears.
 - [ ] After deploy, press Settings -> Automation & Hours -> Suggestions Queue -> Build and confirm old `fdrdfvdf`-style junk suggestions disappear while meaningful unanswered questions remain.
@@ -23,7 +22,7 @@
 - None for this change.
 
 ## Next Steps (for the next agent session)
-1. Review local branch `codex/fix-product-image-only`; push/deploy only after explicit owner authorization, then replay one broad family request and one exact SKU/full-name request in WhatsApp.
+1. Run `git status --short --branch` and confirm local `main` tracks `origin/main` for `naramadaessence/broadcast`.
 2. Confirm the latest formatting commit has deployed to Vercel, then ask the client/user to refresh/check the WhatsApp customer catalogue. Live MongoDB has already been repaired and `Publish to WhatsApp` queued 27 products with 0 failures.
 3. Do not run `Sync from Meta` as the first repair action if Meta has already been poisoned with `3.00 INR`/`23.00 INR`/`52.00 INR`; repair from a trusted source first, then publish to Meta.
 4. If customer WhatsApp still only shows the test product, inspect Meta Commerce Manager diagnostics and WhatsApp channel/catalog attachment for catalogue `***8512`.
@@ -32,6 +31,5 @@
 
 ## Do Not Touch
 - Do not reintroduce hardcoded MongoDB credentials or point this fork at the original SaaS database.
-- Do not replace the working DeepSeek answer path or change its prompt to implement media delivery.
+- Do not restore external AI provider requirements; Smart Automation is local with lexical fallback.
 - Do not convert this into a tenant-seat SaaS deployment unless the client requirement changes.
-- Do not alter or remove the user-owned untracked `deliverables/` folder.

@@ -2,17 +2,6 @@
 
 A registry of active bugs, limitations, and workarounds.
 
-## ISSUE-035: DeepSeek Product Details Were Sent Without The Product Image
-**Status**: Resolved
-**Severity**: High
-**Discovered**: 2026-07-15
-**Resolved**: 2026-07-16
-**Symptom**: DeepSeek returned the desired product name, price, description, and recommendation text, but WhatsApp received only text instead of the stored product image.
-**Root Cause**: `llmResponder.js` intentionally returns generated answers as `type: 'faq'`, and the webhook's FAQ branch always called `sendTextMessage()`. The separate product branch was therefore unreachable for successful DeepSeek answers. Its image fallback also passed `{ link: imageUrl }` even though `sendMediaMessage()` interprets objects as Meta media IDs and accepts public links only as strings. A first attempted repair changed the working DeepSeek prompt to emit `[IMAGE: url]`, altering product-answer behavior without fixing that payload mismatch.
-**Workaround**: Before this fix, send product images manually from Chat Inbox or use the native catalogue action.
-**Fix**: Kept `llmResponder.js` unchanged. After DeepSeek returns, application code selects optional stored media only for one exact unique SKU or complete unique multi-word product name from the latest customer message. The webhook sends that trusted URL as a string with the unchanged DeepSeek answer as its caption and falls back to the same text if media delivery throws. Broad family/category, generic single-word, duplicate-identifier, and multi-product requests remain text-only.
-**Regression Test**: `backend/test/product-media.test.js` and the `DeepSeek product media is attached outside the prompt without changing its answer` contract in `backend/test/regression.test.js`.
-
 ## ISSUE-034: Large Contacts CSV Import Causes Vercel Serverless Function Timeout
 **Status**: Resolved
 **Severity**: High

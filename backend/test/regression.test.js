@@ -237,7 +237,7 @@ test('smart responder can score text-only FAQs when vectors are unavailable', as
   assert.equal(scoreTextMatch('delivery charges', 'return policy warranty'), 0);
 });
 
-test('active source and product docs contain no stale Gemini provider contract', () => {
+test('active source and product docs do not require an external AI provider', () => {
   const externalProviderPattern = /gemini|generativelanguage|AI_API_KEY|GEMINI_API_KEY/i;
   const misleadingProductPattern = /AI Assistant|AI chatbot|Chatbot & Hours|AI Status|AI Semantic Engine|Resume AI Bot|Pause AI Bot|AI features/i;
   const checkedFiles = [
@@ -628,17 +628,19 @@ test('Contacts import uses chunked bulkWrite and frontend batching to prevent se
   assert.match(storeSource, /contactsList\.slice\(\s*i\s*,\s*i\s*\+\s*CHUNK_SIZE\s*\)/);
 });
 
-test('DeepSeek product media is attached outside the prompt without changing its answer', () => {
-  const llmResponderSource = readRepoFile('backend/src/services/llmResponder.js');
-  const smartResponderSource = readRepoFile('backend/src/services/smartResponder.js');
+test('AI WhatsApp product responses return structured product JSON and strip raw image URLs from chat text', async () => {
+  const { stripImageUrlsFromText } = await importFromBackend('src/utils/productCatalogue.js');
+  const llmSource = readRepoFile('backend/src/services/llmResponder.js');
   const webhookSource = readRepoFile('backend/src/routes/webhook.js');
 
-  assert.match(llmResponderSource, /If multiple products match, show all matching products and ask which one they would like to know more about/);
-  assert.doesNotMatch(llmResponderSource, /\[IMAGE:/);
-  assert.match(smartResponderSource, /selectExplicitProductMedia\(messageBody, products\)/);
-  assert.match(smartResponderSource, /replyWithMedia\s*=\s*\{\s*\.\.\.llmReply,\s*media_product:\s*mediaProduct\s*\}/);
-  assert.match(webhookSource, /sendMediaMessage\(fromPhone,\s*'image',\s*mediaProduct\.image_url,\s*replyText,\s*setting\)/);
-  assert.match(webhookSource, /Product image delivery failed; sending unchanged text reply/);
-  assert.doesNotMatch(webhookSource, /sendMediaMessage\(fromPhone,\s*'image',\s*\{\s*link:\s*(?:mediaProduct|product)\.image_url/);
+  assert.equal(stripImageUrlsFromText('Check this out: [Image URL: https://example.com/item.jpg] and let us know!'), 'Check this out: and let us know!');
+  assert.equal(stripImageUrlsFromText('Here is the product.\nhttps://cdn.example.com/photo.png?v=123\nPrice is 699.'), 'Here is the product.\nPrice is 699.');
+
+  assert.match(llmSource, /"product":\s*\{\s*"name":\s*"Exact product name from list"/);
+  assert.match(llmSource, /stripImageUrlsFromText\(finalMessage\s*\|\|\s*cleanText\)/);
+  assert.doesNotMatch(llmSource, /Product Image URL \(if available\)/);
+
+  assert.match(webhookSource, /stripImageUrlsFromText\(botReply\.text\s*\|\|\s*["']["']\)/);
+  assert.match(webhookSource, /result\s*=\s*await sendMediaMessage\(fromPhone,\s*'image',\s*\{\s*link:\s*imageUrl\s*\},\s*messageToSend,\s*setting\)/);
 });
 

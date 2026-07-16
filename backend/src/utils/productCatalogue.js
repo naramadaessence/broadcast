@@ -82,3 +82,17 @@ export function productPriceAmount(product = {}) {
 export function formatMetaCataloguePrice(product = {}) {
     return `${productPriceAmount(product).toFixed(2)} INR`;
 }
+
+export function stripImageUrlsFromText(text) {
+    if (!text || typeof text !== 'string') return '';
+    return text
+        .replace(/(?:^|\n)[ \t]*\[Image\s*URL:\s*https?:\/\/[^\]]+\][ \t]*(?:\r?\n|$)/gi, '\n')
+        .replace(/(?:^|\n)[ \t]*Image\s*URL:\s*https?:\/\/[^\s\n]+[ \t]*(?:\r?\n|$)/gi, '\n')
+        .replace(/(?:^|\n)[ \t]*https?:\/\/[^\s()<>"]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s()<>"]*)?[ \t]*(?:\r?\n|$)/gi, '\n')
+        .replace(/\[Image\s*URL:\s*https?:\/\/[^\]]+\]/gi, '')
+        .replace(/Image\s*URL:\s*https?:\/\/[^\s\n]+/gi, '')
+        .replace(/https?:\/\/[^\s()<>"]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s()<>"]*)?/gi, '')
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}

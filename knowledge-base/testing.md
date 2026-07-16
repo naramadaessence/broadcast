@@ -22,14 +22,7 @@
 
 ## Current Session Status
 
-As of 2026-07-16:
-
-- PASS - 2026-07-16 exact-product image fix: focused product-media tests 8/8,
-  focused DeepSeek media regression 1/1, full backend suite 43/43, and backend
-  syntax sweep; backend/frontend audits with 0 vulnerabilities; frontend lint
-  with 0 errors and 10 pre-existing warnings; and frontend production build.
-  `llmResponder.js` remained unchanged from rollback commit `1c2ca31`; frontend
-  code was not changed.
+As of 2026-07-03:
 
 - PASS - `cd backend && npm test` (33 tests).
 - PASS - backend PowerShell `node --check` sweep across `backend/src/**/*.js`.
@@ -78,17 +71,10 @@ Frontend automated component tests are not configured yet. Until they exist, kee
 - Catalogue formatting must cover stripping HTML descriptions before storage,
   Meta publishing, Shopify sync, Smart Automation matching, and product bot
   replies.
-- DeepSeek product-image coverage must prove exact unique SKU and complete
-  multi-word name selection, broad-family and comparison rejection, duplicate
-  identifier rejection, valid stored HTTP(S) media, URL-string `image.link`
-  delivery, unchanged DeepSeek captions, and text fallback on media failure.
 - Settings must cover secret masking so tokens and payment secrets are not rehydrated into browser form state after reload.
 
 ## Mocks, Fakes, and Fixtures
 No shared runtime mocks or fixtures exist yet. Current regression tests use source inspection and pure helper tests so they do not require MongoDB Atlas, Meta, Razorpay, Shopify, Vercel, SMTP, or Socket.io.
-
-`backend/test/product-media.test.js` uses a local fake `fetch` response to inspect
-the exact Meta image payload without sending a real WhatsApp message.
 
 External services that need fakes once integration tests are added: MongoDB, Meta Graph API, Razorpay, Shopify, SMTP, Socket.io, and Vercel routing.
 

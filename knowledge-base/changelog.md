@@ -1,16 +1,21 @@
 # Changelog
 
-## 2026-07-16 — Attach Exact Product Images Without Changing DeepSeek
-**What**: Added deterministic exact-product media selection after DeepSeek generation and sent the trusted stored image URL with the unchanged DeepSeek reply as its WhatsApp caption.
-**Why**: The working responder always returned generated product answers as `faq`, so the webhook sent text only. The prior prompt-marker experiment changed desired DeepSeek behavior and still passed the image URL in the wrong helper shape.
-**Impact**: An exact unique SKU or complete unique multi-word product name can attach its stored image. Broad family/category questions, comparisons, generic single-word names, and duplicate identifiers remain text-only. Media errors fall back to the original DeepSeek text.
-**Files Changed**: `backend/src/utils/productMediaSelection.js`, `backend/src/services/smartResponder.js`, `backend/src/routes/webhook.js`, `backend/test/product-media.test.js`, `backend/test/regression.test.js`, and task-relevant files under `knowledge-base/`.
-**Tests**: PASS - focused product-media tests 8/8; focused DeepSeek media regression 1/1; full backend suite 43/43; backend syntax sweep; backend/frontend audits with 0 vulnerabilities; frontend lint with 0 errors and 10 pre-existing warnings; frontend production build; `git diff --check`.
-**Commit**: Local-only branch; not pushed
-
-- Preserved `backend/src/services/llmResponder.js` byte-for-byte from rollback commit `1c2ca31`.
-- Passed public media URLs as strings, matching the existing `sendMediaMessage()` contract.
-- Kept the user-owned untracked `deliverables/` folder untouched.
+## 2026-07-16 — Optimize AI WhatsApp Product Responses with Structured JSON and Clean Native Media Messages
+**What**: 
+- Updated `backend/src/services/llmResponder.js` to instruct the DeepSeek LLM to return structured JSON (`{ "product": { ... }, "message": "..." }`) when answering product inquiries or recommendations, and added `stripImageUrlsFromText` to guarantee no raw image URLs ever leak inside conversational text responses.
+- Added `stripImageUrlsFromText` helper in `backend/src/utils/productCatalogue.js` and integrated it across `llmResponder.js`, `smartResponder.js`, and `webhook.js`.
+- Updated `backend/src/routes/webhook.js` (`botReply.type === 'product'` and `botReply.type === 'faq'`) to strip raw image URLs from chat text, prioritize native WhatsApp Interactive Catalog Cards (`sendInteractiveMessage`) when `whatsapp_catalog_id` and SKU exist, and fallback to native WhatsApp Image Messages (`sendMediaMessage('image', { link: imageUrl }, caption)`) where the AI response text acts cleanly as the image caption without displaying any plain-text image URLs.
+- Added automated regression unit test in `backend/test/regression.test.js` (`35/35 passing`).
+**Why**: User requested to completely prevent raw `[Image URL: https://...]` or plain image URLs from being displayed as text inside WhatsApp chats, ensuring products with images are delivered cleanly via native WhatsApp image messages with captions or Interactive Catalog product cards accompanied by conversational AI replies.
+**Files Changed**:
+- `backend/src/utils/productCatalogue.js`
+- `backend/src/services/llmResponder.js`
+- `backend/src/services/smartResponder.js`
+- `backend/src/routes/webhook.js`
+- `backend/test/regression.test.js`
+- `knowledge-base/changelog.md`
+- `knowledge-base/chatbot.md`
+- `knowledge-base/whatsapp-webhook.md`
 
 ## 2026-07-16 — Revert Image Media Formatting to Restore Interactive Catalog Cards and Standard Product Prompt
 **What**: 
