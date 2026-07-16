@@ -1,11 +1,10 @@
 # Changelog
 
-## 2026-07-16 — Format Product & Image Responses as WhatsApp Photo Media with Clean Captions
+## 2026-07-16 — Revert Image Media Formatting to Restore Interactive Catalog Cards and Standard Product Prompt
 **What**: 
-- Updated `generateLLMReply` in `backend/src/services/llmResponder.js` to instruct DeepSeek on concise, localized product/SKU/price descriptions (`Image 2 style`) and separate out product `[IMAGE: url]` or matching `product.image_url` into the `image_url` return property instead of embedding raw URLs inside the text.
-- Updated `backend/src/routes/webhook.js` so that when `botReply.type === 'faq'` or `'product'` includes an `image_url`, `sendMediaMessage(..., 'image', { link: image_url }, caption, setting)` is executed, sending a true WhatsApp photo attachment with the clean short description as its caption (`Image 2 style`).
-- Added regression test (`Product image inquiries return actual WhatsApp photo media with clean short descriptions instead of raw URL strings in text`) in `backend/test/regression.test.js` verifying image URL extraction and media message dispatch.
-**Why**: When customers asked to see a product image or inquired about a product (`Sendela ni image Jovi che`), DeepSeek previously outputted a bulleted text message with the raw `https://...jpg` URL pasted directly inside the text body (`Image 1`). Customers prefer receiving an actual WhatsApp photo attachment with a short, clean description caption below the photo (`Image 2`). By separating the image URL and sending `sendMediaMessage('image')`, the bot now delivers rich photo cards cleanly across English, Gujarati, and Hindi.
+- Reverted experimental `[IMAGE: url]` custom parsing in `backend/src/services/llmResponder.js` back to the clean, structured product response format (`Product Name`, `Price`, `Description`, `Key Features`, `Available Sizes/Colors`, `Stock Status`, `Product Image URL`).
+- Reverted `backend/src/routes/webhook.js` to prioritize sending native WhatsApp Interactive Product Catalog Cards (`sendInteractiveMessage`) when `whatsapp_catalog_id` and `product.sku` are available, instead of overriding catalog cards with `sendMediaMessage('image')`.
+**Why**: User requested to revert experimental custom image tagging and keep native WhatsApp Interactive Product Catalog cards as the primary rich product display format, maintaining standard clean prompt structure.
 **Files Changed**:
 - `backend/src/services/llmResponder.js`
 - `backend/src/routes/webhook.js`

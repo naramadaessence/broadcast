@@ -710,33 +710,21 @@ router.post('/', async (req, res) => {
                                             replyText = renderSlots(replyText, { tenant: setting, botSettings });
                                         } catch (slotErr) {}
                                     }
-                                    if (botReply.image_url) {
-                                        result = await sendMediaMessage(fromPhone, 'image', { link: botReply.image_url }, replyText, setting);
-                                        textToSave = replyText;
-                                        typeToSave = 'image';
-                                        interactionType = 'faq_answer_with_image';
-                                    } else {
-                                        result = await sendTextMessage(fromPhone, replyText, setting);
-                                        textToSave = replyText;
-                                        interactionType = 'faq_answer';
-                                    }
+                                    result = await sendTextMessage(fromPhone, replyText, setting);
+                                    textToSave = replyText;
+                                    interactionType = 'faq_answer';
                                 } else if (botReply.type === 'product') {
                                     const product = botReply.data;
                                     interactionType = 'product_answer';
                                     interactionMetadata.product_id = product._id || product.id;
                                     const description = sanitizeProductDescriptionForCatalogue(product.description);
-                                    const skuText = product.sku ? ` (SKU: ${product.sku})` : '';
                                     const caption = [
-                                        `*${product.name}*${skuText}`,
+                                        `*${product.name}*`,
                                         description,
-                                        `Price: ₹${productPriceAmount(product)}. Check our WhatsApp catalog for more details. 😊`
+                                        `Price: ₹${productPriceAmount(product)}`
                                     ].filter(Boolean).join('\n');
 
-                                    if (product.image_url) {
-                                        result = await sendMediaMessage(fromPhone, 'image', { link: product.image_url }, caption, setting);
-                                        textToSave = caption;
-                                        typeToSave = 'image';
-                                    } else if (setting.whatsapp_catalog_id && product.sku) {
+                                    if (setting.whatsapp_catalog_id && product.sku) {
                                         const interactivePayload = {
                                             type: "product",
                                             body: { text: caption },
@@ -749,10 +737,13 @@ router.post('/', async (req, res) => {
                                         result = await sendInteractiveMessage(fromPhone, interactivePayload, setting);
                                         textToSave = caption;
                                         typeToSave = 'interactive';
+                                    } else if (product.image_url) {
+                                        result = await sendMediaMessage(fromPhone, 'image', { link: product.image_url }, caption, setting);
+                                        textToSave = caption;
+                                        typeToSave = 'image';
                                     } else {
                                         result = await sendTextMessage(fromPhone, caption, setting);
                                         textToSave = caption;
-                                        typeToSave = 'text';
                                     }
                                 } else if (botReply.type === 'language_selection') {
                                     interactionType = 'language_selection';

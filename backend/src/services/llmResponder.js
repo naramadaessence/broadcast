@@ -15,7 +15,7 @@ export async function generateLLMReply(tenantId, messageBody, chatHistory = [], 
 
     try {
         const { faqs, products } = await getTenantKnowledge(tenantId);
-
+        
         if ((!faqs || faqs.length === 0) && (!products || products.length === 0)) {
             return null; // No knowledge base to answer from
         }
@@ -27,7 +27,7 @@ Your goal is to provide accurate, friendly, and professional customer support wh
 * Always reply in the customer's selected language.
 * Supported languages: English, Hindi, Gujarati.
 * If the customer has not selected a language yet or just says a greeting, ask them to choose one before continuing. Example:
-  Welcome! 
+  Welcome! 👋
   Please select your preferred language.
   1️⃣ English
   2️⃣ हिन्दी
@@ -49,7 +49,9 @@ You will receive business information, FAQs, policies, delivery details, etc. be
 
         contextText += `
 ## Product Knowledge & Recommendations
-Product information is supplied dynamically below. If the customer asks about a product by name, image, price, or wants a recommendation, search the provided list and respond using ONLY the matching product data.
+Product information is supplied dynamically below. If the customer asks about a product by name or wants a recommendation, search the provided list and respond using ONLY the matching product data.
+Always include: Product Name, Price, Short Description, Key Features, Available Sizes/Colors, Stock Status.
+If multiple products match, show all matching products and ask which one they would like to know more about.
 Never recommend products that are not available.
 
 `;
@@ -58,7 +60,7 @@ Never recommend products that are not available.
             contextText += "--- PRODUCTS IN STOCK ---\n";
             products.forEach(p => {
                 const desc = sanitizeProductDescriptionForCatalogue(p.description);
-                contextText += `Product: ${p.name}\nSKU: ${p.sku || 'N/A'}\nCategory: ${p.category || 'General'}\nPrice: ₹${p.selling_price || p.mrp}\nDescription: ${desc}\nImage URL: ${p.image_url || 'N/A'}\n\n`;
+                contextText += `Product: ${p.name}\nCategory: ${p.category || 'General'}\nPrice: ₹${p.selling_price || p.mrp}\nDescription: ${desc}\nImage URL: ${p.image_url || 'N/A'}\n\n`;
             });
         }
 
@@ -68,19 +70,13 @@ Never recommend products that are not available.
 * Avoid long paragraphs. Use emojis only where appropriate.
 
 ## Response Format for Products
-When the customer asks about a product, product image, price, or details, write a SHORT, clean summary in the customer's selected language (or the language of their message).
-The summary MUST follow this structure:
-1. State the product name (with SKU if available) and what it is / suitable for.
-2. State the price clearly.
-3. End with a polite invitation to check our WhatsApp catalog or order.
-Example in English:
-"This is 'Orchid Premium Air Freshener Refill' (SKU: 26370362285921618), suitable for home, office, and car. Its price is ₹699. Check our WhatsApp catalog for more details. 😊"
-Example in Gujarati:
-"આ 'Orchid Premium Air Freshener Refill' (SKU: 26370362285921618) છે, જે ઘર, ઓફિસ અને કાર માટે યોગ્ય છે. તેની કિંમત ₹699 છે. વધુ વિગતો માટે અમારો WhatsApp કેટલોગ તપાસો. 😊"
-
-CRITICAL FOR IMAGES:
-If the matching product has an Image URL (\`Image URL: ...\`) or if the customer asked for an image/photo of a product, you MUST include \`[IMAGE: <exact_image_url>]\` on a new line at the very end of your response.
-Do NOT paste raw \`https://...\` image URLs directly inside your sentences. Put ONLY \`[IMAGE: https://...]\` at the very end so our system can attach the photo as a media image above the caption.
+Product Name
+Price
+Description
+Key Features
+Available Sizes/Colors
+Stock Status
+Product Image URL (if available)
 
 ## Important Rules
 * Never hallucinate information, prices, product details, or policies.
@@ -94,7 +90,7 @@ Do NOT paste raw \`https://...\` image URLs directly inside your sentences. Put 
             { role: "system", content: contextText }
         ];
 
-
+        // Add history if any
         if (chatHistory && chatHistory.length > 0) {
             // Keep last 4 messages to avoid blowing up context window
             const recentHistory = chatHistory.slice(-4);
@@ -116,7 +112,7 @@ Do NOT paste raw \`https://...\` image URLs directly inside your sentences. Put 
         });
 
         let replyText = response.choices[0]?.message?.content?.trim();
-
+        
         if (!replyText) return null;
 
         // Defensively parse in case the LLM hallucinates JSON despite instructions
@@ -131,43 +127,9 @@ Do NOT paste raw \`https://...\` image URLs directly inside your sentences. Put 
             // Not JSON, ignore
         }
 
-        let imageUrl = null;
-        const imageTagMatch = replyText.match(/\[IMAGE:\s*(https?:\/\/[^\]\s]+)\s*\]/i);
-        if (imageTagMatch) {
-            imageUrl = imageTagMatch[1].trim();
-            replyText = replyText.replace(/\[IMAGE:\s*https?:\/\/[^\]\s]+\s*\]/gi, '').trim();
-        }
-
-        if (!imageUrl && products && products.length > 0) {
-            for (const p of products) {
-                if (p.image_url && replyText.includes(p.image_url)) {
-                    imageUrl = p.image_url;
-                    replyText = replyText.replace(p.image_url, '').trim();
-                    break;
-                }
-            }
-        }
-
-        if (!imageUrl) {
-            const genericImgMatch = replyText.match(/https?:\/\/[^\s()<>"]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s()<>"]*)?/i);
-            if (genericImgMatch) {
-                imageUrl = genericImgMatch[0];
-                replyText = replyText.replace(genericImgMatch[0], '').trim();
-            }
-        }
-
-        if (imageUrl) {
-            replyText = replyText
-                .replace(/^[^\n]*?(?:here is the (?:image|photo|pic)|અહીં તેની ઇમેજ છે|અહીં તેનો ફોટો છે)[^\n]*\n+/gi, '')
-                .replace(/\n+[^\n]*?(?:here is the (?:image|photo|pic)|અહીં તેની ઇમેજ છે|અહીં તેનો ફોટો છે)[^\n]*$/gi, '')
-                .replace(/\n{3,}/g, '\n\n')
-                .trim();
-        }
-
         return {
             type: 'faq', // We return as 'faq' type so the main loop sends it directly
             text: replyText,
-            image_url: imageUrl || null,
             confidence: 'high',
             band: 'high',
             _source: 'deepseek_llm'
