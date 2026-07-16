@@ -628,3 +628,16 @@ test('Contacts import uses chunked bulkWrite and frontend batching to prevent se
   assert.match(storeSource, /contactsList\.slice\(\s*i\s*,\s*i\s*\+\s*CHUNK_SIZE\s*\)/);
 });
 
+test('Product image inquiries return actual WhatsApp photo media with clean short descriptions instead of raw URL strings in text', () => {
+  const webhookSource = readRepoFile('backend/src/routes/webhook.js');
+  const llmResponderSource = readRepoFile('backend/src/services/llmResponder.js');
+
+  assert.match(llmResponderSource, /\[IMAGE:\s*<exact_image_url>\]/);
+  assert.match(llmResponderSource, /replyText\.match\(\/\\\[IMAGE:\\s\*\(/);
+  assert.match(llmResponderSource, /image_url:\s*imageUrl\s*\|\|\s*null/);
+
+  assert.match(webhookSource, /if\s*\(\s*botReply\.image_url\s*\)\s*\{\s*result\s*=\s*await\s+sendMediaMessage\(\s*fromPhone\s*,\s*'image'\s*,\s*\{\s*link:\s*botReply\.image_url\s*\}\s*,\s*replyText\s*,\s*setting\s*\)/);
+  assert.match(webhookSource, /if\s*\(\s*product\.image_url\s*\)\s*\{\s*result\s*=\s*await\s+sendMediaMessage\(\s*fromPhone\s*,\s*'image'\s*,\s*\{\s*link:\s*product\.image_url\s*\}\s*,\s*caption\s*,\s*setting\s*\)/);
+});
+
+

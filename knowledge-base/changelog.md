@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-16 — Format Product & Image Responses as WhatsApp Photo Media with Clean Captions
+**What**: 
+- Updated `generateLLMReply` in `backend/src/services/llmResponder.js` to instruct DeepSeek on concise, localized product/SKU/price descriptions (`Image 2 style`) and separate out product `[IMAGE: url]` or matching `product.image_url` into the `image_url` return property instead of embedding raw URLs inside the text.
+- Updated `backend/src/routes/webhook.js` so that when `botReply.type === 'faq'` or `'product'` includes an `image_url`, `sendMediaMessage(..., 'image', { link: image_url }, caption, setting)` is executed, sending a true WhatsApp photo attachment with the clean short description as its caption (`Image 2 style`).
+- Added regression test (`Product image inquiries return actual WhatsApp photo media with clean short descriptions instead of raw URL strings in text`) in `backend/test/regression.test.js` verifying image URL extraction and media message dispatch.
+**Why**: When customers asked to see a product image or inquired about a product (`Sendela ni image Jovi che`), DeepSeek previously outputted a bulleted text message with the raw `https://...jpg` URL pasted directly inside the text body (`Image 1`). Customers prefer receiving an actual WhatsApp photo attachment with a short, clean description caption below the photo (`Image 2`). By separating the image URL and sending `sendMediaMessage('image')`, the bot now delivers rich photo cards cleanly across English, Gujarati, and Hindi.
+**Files Changed**:
+- `backend/src/services/llmResponder.js`
+- `backend/src/routes/webhook.js`
+- `backend/test/regression.test.js`
+- `knowledge-base/changelog.md`
+
 ## 2026-07-16 — Fix Large Contacts CSV Import Serverless Timeout & Add Progress Bar
 **What**: 
 - Replaced sequential `await Contact.findOneAndUpdate(...)` loop in `backend/src/routes/contacts.js` (`POST /api/v1/contacts/import`) with batched `Contact.bulkWrite(batch, { ordered: false })` operations (`BATCH_SIZE = 500`), and added support for both comma and semicolon tag/label delimiters (`split(/[,;]/)`).
