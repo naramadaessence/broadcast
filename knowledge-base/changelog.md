@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-16 — Fix Large Contacts CSV Import Serverless Timeout & Add Progress Bar
+**What**: 
+- Replaced sequential `await Contact.findOneAndUpdate(...)` loop in `backend/src/routes/contacts.js` (`POST /api/v1/contacts/import`) with batched `Contact.bulkWrite(batch, { ordered: false })` operations (`BATCH_SIZE = 500`), and added support for both comma and semicolon tag/label delimiters (`split(/[,;]/)`).
+- Updated `importContacts` in `frontend/src/stores/store.js` to slice `contactsList` into chunks of `1000` items (`CHUNK_SIZE = 1000`) before sending POST requests to `/contacts/import`, reporting real-time progress back to the UI.
+- Added `importProgress` state tracking and loading progress indicators (`Importing X/Y...`) to the Import modal footer in `frontend/src/components/Contacts.jsx`.
+- Added regression test in `backend/test/regression.test.js` verifying batched `bulkWrite` and client-side chunking.
+**Why**: When importing large CSV contact files (e.g. 12,916 contacts), sending all items inside a single HTTP POST request and processing them sequentially in a `for...of` database loop took over ~150 seconds. On Vercel serverless functions, this exceeded the maximum execution timeout (`FUNCTION_INVOCATION_TIMEOUT`) and caused the import to fail. By batching on both frontend (1,000 items per request) and backend (500 items per `bulkWrite`), each request executes in milliseconds, eliminating serverless timeouts and payload size issues while giving users real-time progress feedback.
+**Files Changed**:
+- `backend/src/routes/contacts.js`
+- `frontend/src/stores/store.js`
+- `frontend/src/components/Contacts.jsx`
+- `backend/test/regression.test.js`
+- `knowledge-base/known-issues.md`
+- `knowledge-base/changelog.md`
+
 ## 2026-07-15 — Reset Repository History & Replace Remote Code
 **What**: Wiped all historical commits (310 legacy commits from previous repository origins) and re-initialized the git history as a clean, single initial release containing the current production codebase (`backend/`, `frontend/`, and `knowledge-base/`). Force pushed to `https://github.com/naramadaessence/broadcast.git`.
 **Why**: User requested to completely remove old commit history and code from `https://github.com/naramadaessence/broadcast.git` and replace it cleanly with the current clean codebase.

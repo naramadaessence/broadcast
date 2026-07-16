@@ -50,6 +50,7 @@ export default function Contacts() {
     const [showImport, setShowImport] = useState(false);
     const [importFile, setImportFile] = useState(null);
     const [importPreview, setImportPreview] = useState(null);
+    const [importProgress, setImportProgress] = useState(null);
     const [loading, setLoading] = useState(false);
     const [exporting, setExporting] = useState(false);
 
@@ -273,16 +274,20 @@ export default function Contacts() {
     const handleImport = async () => {
         if (!importPreview || importPreview.length === 0) { showToast('No valid contacts found', 'error'); return; }
         setLoading(true);
+        setImportProgress({ current: 0, total: importPreview.length });
         try {
-            const result = await importContacts(importPreview);
+            const result = await importContacts(importPreview, (current, total) => {
+                setImportProgress({ current, total });
+            });
             showToast(`Imported ${result.imported} contacts (${result.skipped} skipped)`);
-            setShowImport(false); setImportFile(null); setImportPreview(null);
+            setShowImport(false); setImportFile(null); setImportPreview(null); setImportProgress(null);
             doFetch();
             // Refresh filter dropdowns
             apiFetch('/contacts/tags/list').then(setAllTags).catch(() => {});
             apiFetch('/contacts/locations/list').then(setAllLocations).catch(() => {});
         } catch (err) {
             showToast(err.message, 'error');
+            setImportProgress(null);
         }
         setLoading(false);
     };
@@ -604,19 +609,20 @@ export default function Contacts() {
 
             {/* Import Modal */}
             {showImport && (
-                <div className="modal-overlay" onClick={() => setShowImport(false)}>
+                <div className="modal-overlay" onClick={() => { if (!loading) { setShowImport(false); setImportProgress(null); } }}>
                     <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '550px' }}>
                         <div className="modal-header">
                             <h2>Import Contacts</h2>
-                            <button className="btn-icon" onClick={() => setShowImport(false)}><Icon name="close" size={20} /></button>
+                            <button className="btn-icon" disabled={loading} onClick={() => { setShowImport(false); setImportProgress(null); }}><Icon name="close" size={20} /></button>
                         </div>
                         <div className="modal-body">
                             <div style={{
                                 border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '32px 20px',
-                                textAlign: 'center', cursor: 'pointer',
+                                textAlign: 'center', cursor: !loading ? 'pointer' : 'default',
                                 background: importFile ? 'rgba(37, 211, 102, 0.04)' : 'var(--bg-tertiary)', transition: 'all 0.2s',
+                                opacity: loading ? 0.7 : 1,
                             }}
-                                onClick={() => document.getElementById('csv-file-input').click()}
+                                onClick={() => { if (!loading) document.getElementById('csv-file-input').click(); }}
                             >
                                 <input id="csv-file-input" type="file" accept=".csv,text/csv" onChange={handleFileSelect} style={{ display: 'none' }} />
                                 {!importFile ? (
@@ -631,7 +637,7 @@ export default function Contacts() {
                                         <div style={{ marginTop: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
                                             {importPreview ? `${importPreview.length} valid contacts found` : 'Parsing...'}
                                         </div>
-                                        <button type="button" className="btn btn-secondary" style={{ marginTop: '8px', fontSize: '12px', padding: '4px 12px' }}
+                                        <button type="button" className="btn btn-secondary" disabled={loading} style={{ marginTop: '8px', fontSize: '12px', padding: '4px 12px' }}
                                             onClick={(e) => { e.stopPropagation(); setImportFile(null); setImportPreview(null); }}>
                                             Change file
                                         </button>
@@ -656,9 +662,12 @@ export default function Contacts() {
                             )}
                         </div>
                         <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={() => { setShowImport(false); setImportFile(null); setImportPreview(null); }}>Cancel</button>
+                            <button className="btn btn-secondary" disabled={loading} onClick={() => { setShowImport(false); setImportFile(null); setImportPreview(null); setImportProgress(null); }}>Cancel</button>
                             <button className="btn btn-primary" onClick={handleImport} disabled={loading || !importPreview?.length}>
-                                {loading ? 'Importing...' : `Import ${importPreview?.length || 0} Contacts`}
+                                {loading
+                                    ? (importProgress?.total ? `Importing ${importProgress.current}/${importProgress.total}...` : 'Importing...')
+                                    : `Import ${importPreview?.length || 0} Contacts`
+                                }
                             </button>
                         </div>
                     </div>

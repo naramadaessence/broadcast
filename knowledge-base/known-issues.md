@@ -2,6 +2,17 @@
 
 A registry of active bugs, limitations, and workarounds.
 
+## ISSUE-034: Large Contacts CSV Import Causes Vercel Serverless Function Timeout
+**Status**: Resolved
+**Severity**: High
+**Discovered**: 2026-07-16
+**Resolved**: 2026-07-16
+**Symptom**: When importing large CSV contact lists (such as ~12,916 contacts), the request failed with `FUNCTION_INVOCATION_TIMEOUT bom1::r84ns-1784186445364-fe8dc67be740` on Vercel serverless functions.
+**Root Cause**: The frontend sent the entire array of contacts inside a single HTTP request (`POST /api/v1/contacts/import`), which risked exceeding Vercel payload size limits. Furthermore, the backend processed each contact sequentially in a `for...of` loop executing `await Contact.findOneAndUpdate(...)` one by one, taking over ~150 seconds for 12,000 items and triggering Vercel's 10-60 second function invocation timeout.
+**Workaround**: None needed after this fix. Before this fix, users had to split CSV files into small batches of a few hundred rows manually before uploading.
+**Fix**: Updated `importContacts` in `frontend/src/stores/store.js` to automatically chunk `contactsList` into batches of `1000` items (`CHUNK_SIZE = 1000`) per POST request with real-time UI progress reporting (`Importing X/Y...`) in `Contacts.jsx`. On the backend, updated `POST /api/v1/contacts/import` in `backend/src/routes/contacts.js` to process incoming contact chunks using batched `Contact.bulkWrite(batch, { ordered: false })` operations (`BATCH_SIZE = 500`), reducing database processing time from minutes to milliseconds per chunk and preventing timeouts.
+**Regression Test**: `backend/test/regression.test.js` tests `Contacts import uses chunked bulkWrite and frontend batching to prevent serverless timeouts on large CSV files`.
+
 ## ISSUE-033: Gibberish Bot Misses Polluted Suggestions Queue
 **Status**: Resolved
 **Severity**: Medium

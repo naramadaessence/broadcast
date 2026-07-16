@@ -411,10 +411,28 @@ export const useStore = create(
                 get().fetchContacts();
             },
 
-            importContacts: async (contactsList) => {
-                const result = await api('/contacts/import', { method: 'POST', body: JSON.stringify({ contacts: contactsList }) });
+            importContacts: async (contactsList, onProgress) => {
+                if (!Array.isArray(contactsList) || contactsList.length === 0) {
+                    return { imported: 0, skipped: 0 };
+                }
+                const CHUNK_SIZE = 1000;
+                let totalImported = 0;
+                let totalSkipped = 0;
+
+                for (let i = 0; i < contactsList.length; i += CHUNK_SIZE) {
+                    const chunk = contactsList.slice(i, i + CHUNK_SIZE);
+                    const result = await api('/contacts/import', {
+                        method: 'POST',
+                        body: JSON.stringify({ contacts: chunk })
+                    });
+                    totalImported += (result?.imported || 0);
+                    totalSkipped += (result?.skipped || 0);
+                    if (typeof onProgress === 'function') {
+                        onProgress(Math.min(i + CHUNK_SIZE, contactsList.length), contactsList.length);
+                    }
+                }
                 await get().fetchContacts();
-                return result;
+                return { imported: totalImported, skipped: totalSkipped };
             },
 
             // ============================================================

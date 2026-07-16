@@ -192,43 +192,66 @@ router.post('/import', async (req, res) => {
         let imported = 0;
         let skipped = 0;
 
+        const operations = [];
         for (const c of contacts) {
             if (!c.name || !c.phone) {
                 skipped++;
                 continue;
             }
 
-            try {
-                let tags = [];
-                if (Array.isArray(c.tags)) {
-                    tags = c.tags;
-                } else if (typeof c.tags === 'string') {
-                    tags = c.tags.split(',').map(t => t.trim()).filter(Boolean);
-                }
+            let tags = [];
+            if (Array.isArray(c.tags)) {
+                tags = c.tags.filter(t => t && typeof t === 'string');
+            } else if (typeof c.tags === 'string') {
+                tags = c.tags.split(/[,;]/).map(t => t.trim()).filter(Boolean);
+            }
 
-                let labels = [];
-                if (Array.isArray(c.labels)) {
-                    labels = c.labels;
-                } else if (typeof c.labels === 'string') {
-                    labels = c.labels.split(',').map(t => t.trim()).filter(Boolean);
-                }
+            let labels = [];
+            if (Array.isArray(c.labels)) {
+                labels = c.labels.filter(t => t && typeof t === 'string');
+            } else if (typeof c.labels === 'string') {
+                labels = c.labels.split(/[,;]/).map(t => t.trim()).filter(Boolean);
+            }
 
-                await Contact.findOneAndUpdate(
-                    { phone: c.phone },
-                    {
-                        name: c.name,
-                        email: c.email || '',
-                        location: c.location || '',
-                        ticket_size: c.ticket_size ? parseFloat(c.ticket_size) : 0,
-                        $addToSet: { tags: { $each: tags }, labels: { $each: labels } },
-                        notes: c.notes || '',
-                        source: 'import'
+            const ticketSize = (c.ticket_size !== undefined && c.ticket_size !== null && c.ticket_size !== '')
+                ? parseFloat(c.ticket_size)
+                : 0;
+
+            operations.push({
+                updateOne: {
+                    filter: { phone: String(c.phone).trim() },
+                    update: {
+                        $set: {
+                            name: String(c.name).trim(),
+                            email: c.email ? String(c.email).trim() : '',
+                            location: c.location ? String(c.location).trim() : '',
+                            ticket_size: isNaN(ticketSize) ? 0 : ticketSize,
+                            notes: c.notes ? String(c.notes) : '',
+                            source: 'import'
+                        },
+                        $addToSet: {
+                            tags: { $each: tags },
+                            labels: { $each: labels }
+                        }
                     },
-                    { upsert: true, new: true }
-                );
-                imported++;
+                    upsert: true
+                }
+            });
+        }
+
+        const BATCH_SIZE = 500;
+        for (let i = 0; i < operations.length; i += BATCH_SIZE) {
+            const batch = operations.slice(i, i + BATCH_SIZE);
+            try {
+                const result = await Contact.bulkWrite(batch, { ordered: false });
+                const batchSuccess = (result.nMatched ?? result.matchedCount ?? 0) + (result.nUpserted ?? result.upsertedCount ?? 0);
+                imported += batchSuccess;
+                skipped += Math.max(0, batch.length - batchSuccess);
             } catch (err) {
-                skipped++;
+                const res = err.result || {};
+                const batchSuccess = (res.nMatched ?? res.matchedCount ?? 0) + (res.nUpserted ?? res.upsertedCount ?? 0);
+                imported += batchSuccess;
+                skipped += Math.max(0, batch.length - batchSuccess);
             }
         }
 

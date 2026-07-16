@@ -616,3 +616,15 @@ test('Vite dev proxy targets the backend default port and can be overridden for 
   assert.match(viteConfig, /process\.env\.VITE_DEV_API_PROXY_TARGET\s*\|\|\s*['"]http:\/\/localhost:3000['"]/);
   assert.match(viteConfig, /target:\s*apiProxyTarget/);
 });
+
+test('Contacts import uses chunked bulkWrite and frontend batching to prevent serverless timeouts on large CSV files', () => {
+  const contactsRouteSource = readRepoFile('backend/src/routes/contacts.js');
+  const storeSource = readRepoFile('frontend/src/stores/store.js');
+
+  assert.match(contactsRouteSource, /Contact\.bulkWrite\(\s*batch\s*,\s*\{\s*ordered:\s*false\s*\}\s*\)/);
+  assert.doesNotMatch(contactsRouteSource, /for\s*\(\s*const\s+c\s+of\s+contacts\s*\)\s*\{\s*[^}]*Contact\.findOneAndUpdate/);
+
+  assert.match(storeSource, /CHUNK_SIZE\s*=\s*1000/);
+  assert.match(storeSource, /contactsList\.slice\(\s*i\s*,\s*i\s*\+\s*CHUNK_SIZE\s*\)/);
+});
+
