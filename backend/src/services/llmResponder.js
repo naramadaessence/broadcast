@@ -15,7 +15,7 @@ export async function generateLLMReply(tenantId, messageBody, chatHistory = [], 
 
     try {
         const { faqs, products } = await getTenantKnowledge(tenantId);
-        
+
         if ((!faqs || faqs.length === 0) && (!products || products.length === 0)) {
             return null; // No knowledge base to answer from
         }
@@ -27,7 +27,7 @@ Your goal is to provide accurate, friendly, and professional customer support wh
 * Always reply in the customer's selected language.
 * Supported languages: English, Hindi, Gujarati.
 * If the customer has not selected a language yet or just says a greeting, ask them to choose one before continuing. Example:
-  Welcome! 👋
+  Welcome! 
   Please select your preferred language.
   1️⃣ English
   2️⃣ हिन्दी
@@ -94,7 +94,7 @@ Do NOT paste raw \`https://...\` image URLs directly inside your sentences. Put 
             { role: "system", content: contextText }
         ];
 
-        // Add history if any
+
         if (chatHistory && chatHistory.length > 0) {
             // Keep last 4 messages to avoid blowing up context window
             const recentHistory = chatHistory.slice(-4);
@@ -116,7 +116,7 @@ Do NOT paste raw \`https://...\` image URLs directly inside your sentences. Put 
         });
 
         let replyText = response.choices[0]?.message?.content?.trim();
-        
+
         if (!replyText) return null;
 
         // Defensively parse in case the LLM hallucinates JSON despite instructions
