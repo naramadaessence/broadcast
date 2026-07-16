@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-16 — Optimize AI WhatsApp Product Responses with Structured JSON and Clean Native Media Messages
+**What**: 
+- Updated `backend/src/services/llmResponder.js` to instruct the DeepSeek LLM to return structured JSON (`{ "product": { ... }, "message": "..." }`) when answering product inquiries or recommendations, and added `stripImageUrlsFromText` to guarantee no raw image URLs ever leak inside conversational text responses.
+- Added `stripImageUrlsFromText` helper in `backend/src/utils/productCatalogue.js` and integrated it across `llmResponder.js`, `smartResponder.js`, and `webhook.js`.
+- Updated `backend/src/routes/webhook.js` (`botReply.type === 'product'` and `botReply.type === 'faq'`) to strip raw image URLs from chat text, prioritize native WhatsApp Interactive Catalog Cards (`sendInteractiveMessage`) when `whatsapp_catalog_id` and SKU exist, and fallback to native WhatsApp Image Messages (`sendMediaMessage('image', { link: imageUrl }, caption)`) where the AI response text acts cleanly as the image caption without displaying any plain-text image URLs.
+- Added automated regression unit test in `backend/test/regression.test.js` (`35/35 passing`).
+**Why**: User requested to completely prevent raw `[Image URL: https://...]` or plain image URLs from being displayed as text inside WhatsApp chats, ensuring products with images are delivered cleanly via native WhatsApp image messages with captions or Interactive Catalog product cards accompanied by conversational AI replies.
+**Files Changed**:
+- `backend/src/utils/productCatalogue.js`
+- `backend/src/services/llmResponder.js`
+- `backend/src/services/smartResponder.js`
+- `backend/src/routes/webhook.js`
+- `backend/test/regression.test.js`
+- `knowledge-base/changelog.md`
+- `knowledge-base/chatbot.md`
+- `knowledge-base/whatsapp-webhook.md`
+
 ## 2026-07-16 — Revert Image Media Formatting to Restore Interactive Catalog Cards and Standard Product Prompt
 **What**: 
 - Reverted experimental `[IMAGE: url]` custom parsing in `backend/src/services/llmResponder.js` back to the clean, structured product response format (`Product Name`, `Price`, `Description`, `Key Features`, `Available Sizes/Colors`, `Stock Status`, `Product Image URL`).

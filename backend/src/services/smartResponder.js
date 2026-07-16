@@ -6,7 +6,7 @@ import KnowledgeBase from '../models/KnowledgeBase.js';
 import Product from '../models/Product.js';
 import FaqPhrasing from '../models/FaqPhrasing.js';
 import { MATCH_THRESHOLD, flagEnabled } from '../config/botConfig.js';
-import { sanitizeProductDescriptionForCatalogue } from '../utils/productCatalogue.js';
+import { sanitizeProductDescriptionForCatalogue, stripImageUrlsFromText } from '../utils/productCatalogue.js';
 import { embeddingForTenant } from '../config/embeddingConfig.js';
 
 const LEGACY_MODEL_ID = 'Xenova/multilingual-e5-small';
@@ -270,7 +270,9 @@ export async function handleSmartReply(tenantId, messageBody, chatHistory = [], 
         const { generateLLMReply } = await import('./llmResponder.js');
         const llmReply = await generateLLMReply(tenantId, messageBody, chatHistory, context.tenant);
         if (llmReply) {
-            return await applySmartFlowSlots(llmReply, context, botSettings);
+            const slottedReply = await applySmartFlowSlots(llmReply, context, botSettings);
+            if (slottedReply && slottedReply.text) slottedReply.text = stripImageUrlsFromText(slottedReply.text);
+            return slottedReply;
         }
     } catch (err) {
         console.error('[SmartResponder] DeepSeek LLM failed, falling back to local retrieval:', err.message);
@@ -291,6 +293,7 @@ export async function handleSmartReply(tenantId, messageBody, chatHistory = [], 
             if (isDeferredFlowReply(flowReply)) {
                 deferredFlowReply = flowReply;
             } else if (flowReply) {
+                if (flowReply.text) flowReply.text = stripImageUrlsFromText(flowReply.text);
                 return flowReply;
             }
         } catch (err) {
@@ -300,6 +303,9 @@ export async function handleSmartReply(tenantId, messageBody, chatHistory = [], 
 
     // Per user request, manual FAQ fallbacks (retrieval_v2 & legacy) have been removed.
     // The bot now strictly relies on DeepSeek.
+    if (deferredFlowReply && deferredFlowReply.text) {
+        deferredFlowReply.text = stripImageUrlsFromText(deferredFlowReply.text);
+    }
     return deferredFlowReply;
 }
 
@@ -381,7 +387,7 @@ async function handleSmartReplyLegacy(tenantId, messageBody, chatHistory = [], b
         if (highestProductScore >= THRESHOLD && highestProductScore > highestFaqScore) {
             return { type: 'product', data: bestProductMatch, score: highestProductScore };
         } else if (highestFaqScore >= THRESHOLD) {
-            return { type: 'faq', text: bestFaqMatch.answer, faqId: bestFaqMatch.id, score: highestFaqScore };
+            return { type: 'faq', text: stripImageUrlsFromText(bestFaqMatch.answer), faqId: bestFaqMatch.id, score: highestFaqScore };
         }
 
         return null;

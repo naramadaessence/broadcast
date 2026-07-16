@@ -28,6 +28,7 @@ single-client product.
   what the customer sent even if automation fails.
 - Respect `conversation.bot_paused`; paused conversations must not receive
   automated replies.
+- Never expose raw image URLs (`[Image URL: ...]` or plain `https://...`) inside conversational text replies. All outbound text replies pass through `stripImageUrlsFromText`. Product responses send native WhatsApp Interactive Catalog Cards (`sendInteractiveMessage`) when catalog ID and SKU exist, or native WhatsApp Image Messages (`sendMediaMessage('image')`) with clean AI captions when catalog is not available.
 - Keep `conversation.bot_state` as the place for short-lived automation state.
 - Unknown no-match messages must be triaged before creating customer-facing
   fallback. Gibberish/repeated nonsense gets a plain retry message and is

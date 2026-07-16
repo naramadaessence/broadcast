@@ -25,6 +25,7 @@ import {
 import {
     productPriceAmount,
     sanitizeProductDescriptionForCatalogue,
+    stripImageUrlsFromText,
 } from '../utils/productCatalogue.js';
 
 const router = Router();
@@ -703,47 +704,61 @@ router.post('/', async (req, res) => {
                                 let interactionMetadata = { score: botReply.score, band: botReply.band };
 
                                 if (botReply.type === 'faq') {
-                                    let replyText = botReply.text;
+                                    let replyText = stripImageUrlsFromText(botReply.text || "");
                                     if (flagEnabled(botSettings, 'smart_flows')) {
                                         try {
                                             const { renderSlots } = await import('../services/smartFlows.js');
-                                            replyText = renderSlots(replyText, { tenant: setting, botSettings });
+                                            replyText = stripImageUrlsFromText(renderSlots(replyText, { tenant: setting, botSettings }));
                                         } catch (slotErr) {}
                                     }
-                                    result = await sendTextMessage(fromPhone, replyText, setting);
-                                    textToSave = replyText;
-                                    interactionType = 'faq_answer';
+                                    if (botReply.image_url || botReply.image) {
+                                        const imgLink = botReply.image_url || botReply.image;
+                                        result = await sendMediaMessage(fromPhone, 'image', { link: imgLink }, replyText, setting);
+                                        textToSave = replyText;
+                                        typeToSave = 'image';
+                                        interactionType = 'faq_answer_with_image';
+                                    } else {
+                                        result = await sendTextMessage(fromPhone, replyText, setting);
+                                        textToSave = replyText;
+                                        interactionType = 'faq_answer';
+                                    }
                                 } else if (botReply.type === 'product') {
-                                    const product = botReply.data;
+                                    const product = botReply.data || botReply.product || {};
                                     interactionType = 'product_answer';
                                     interactionMetadata.product_id = product._id || product.id;
                                     const description = sanitizeProductDescriptionForCatalogue(product.description);
-                                    const caption = [
+                                    const fallbackCaption = [
                                         `*${product.name}*`,
                                         description,
                                         `Price: ₹${productPriceAmount(product)}`
                                     ].filter(Boolean).join('\n');
+                                    
+                                    const cleanText = stripImageUrlsFromText(botReply.text || botReply.message || "");
+                                    const messageToSend = cleanText || fallbackCaption;
+                                    const sku = product.sku || '';
+                                    const imageUrl = product.image_url || product.image || botReply.image_url || null;
 
-                                    if (setting.whatsapp_catalog_id && product.sku) {
+                                    if (setting.whatsapp_catalog_id && sku) {
                                         const interactivePayload = {
                                             type: "product",
-                                            body: { text: caption },
+                                            body: { text: messageToSend || `*${product.name}*\nPrice: ₹${productPriceAmount(product)}` },
                                             action: {
                                                 catalog_id: setting.whatsapp_catalog_id,
-                                                product_retailer_id: product.sku
+                                                product_retailer_id: sku
                                             }
                                         };
                                         const { sendInteractiveMessage } = await import('../services/whatsapp.js');
                                         result = await sendInteractiveMessage(fromPhone, interactivePayload, setting);
-                                        textToSave = caption;
+                                        textToSave = messageToSend || fallbackCaption;
                                         typeToSave = 'interactive';
-                                    } else if (product.image_url) {
-                                        result = await sendMediaMessage(fromPhone, 'image', { link: product.image_url }, caption, setting);
-                                        textToSave = caption;
+                                    } else if (imageUrl) {
+                                        result = await sendMediaMessage(fromPhone, 'image', { link: imageUrl }, messageToSend, setting);
+                                        textToSave = messageToSend;
                                         typeToSave = 'image';
                                     } else {
-                                        result = await sendTextMessage(fromPhone, caption, setting);
-                                        textToSave = caption;
+                                        result = await sendTextMessage(fromPhone, messageToSend, setting);
+                                        textToSave = messageToSend;
+                                        typeToSave = 'text';
                                     }
                                 } else if (botReply.type === 'language_selection') {
                                     interactionType = 'language_selection';

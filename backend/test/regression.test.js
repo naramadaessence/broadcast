@@ -628,3 +628,19 @@ test('Contacts import uses chunked bulkWrite and frontend batching to prevent se
   assert.match(storeSource, /contactsList\.slice\(\s*i\s*,\s*i\s*\+\s*CHUNK_SIZE\s*\)/);
 });
 
+test('AI WhatsApp product responses return structured product JSON and strip raw image URLs from chat text', async () => {
+  const { stripImageUrlsFromText } = await importFromBackend('src/utils/productCatalogue.js');
+  const llmSource = readRepoFile('backend/src/services/llmResponder.js');
+  const webhookSource = readRepoFile('backend/src/routes/webhook.js');
+
+  assert.equal(stripImageUrlsFromText('Check this out: [Image URL: https://example.com/item.jpg] and let us know!'), 'Check this out: and let us know!');
+  assert.equal(stripImageUrlsFromText('Here is the product.\nhttps://cdn.example.com/photo.png?v=123\nPrice is 699.'), 'Here is the product.\nPrice is 699.');
+
+  assert.match(llmSource, /"product":\s*\{\s*"name":\s*"Exact product name from list"/);
+  assert.match(llmSource, /stripImageUrlsFromText\(finalMessage\s*\|\|\s*cleanText\)/);
+  assert.doesNotMatch(llmSource, /Product Image URL \(if available\)/);
+
+  assert.match(webhookSource, /stripImageUrlsFromText\(botReply\.text\s*\|\|\s*["']["']\)/);
+  assert.match(webhookSource, /result\s*=\s*await sendMediaMessage\(fromPhone,\s*'image',\s*\{\s*link:\s*imageUrl\s*\},\s*messageToSend,\s*setting\)/);
+});
+

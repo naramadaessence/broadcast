@@ -13,6 +13,8 @@ available and deterministic lexical matching as the fallback.
 | File | Responsibility |
 |------|----------------|
 | `backend/src/services/smartResponder.js` | Main FAQ/product reply matcher, local vector cache, lexical fallback |
+| `backend/src/services/llmResponder.js` | DeepSeek Smart Automation logic, enforcing structured JSON `{ "product": {...}, "message": "..." }` responses for product inquiries and removing image URLs from text |
+| `backend/src/utils/productCatalogue.js` | Catalogue price/description sanitization and `stripImageUrlsFromText` helper to guarantee zero raw image URLs in chat text |
 | `backend/src/config/embeddingConfig.js` | Local MiniLM and multilingual E5 model registry |
 | `backend/src/services/botLearning.js` | Analytics, unanswered logging, suggestions, teach-from-chat helpers |
 | `backend/src/services/messageTriage.js` | Deterministic no-match triage for noise, chatter, human requests, and FAQ-gap candidates |
@@ -20,7 +22,7 @@ available and deterministic lexical matching as the fallback.
 | `backend/src/services/smartFlows.js` | Order/product flow helpers and handoff replies |
 | `backend/src/routes/knowledge-base.js` | FAQ CRUD, import, test console, alternate phrasings |
 | `backend/src/routes/tenant-settings.js` | Automation settings, analytics, test, suggestions, and re-embed endpoints |
-| `backend/src/routes/webhook.js` | Incoming WhatsApp message processing and auto-reply dispatch |
+| `backend/src/routes/webhook.js` | Incoming WhatsApp message processing, image URL stripping, and native Interactive/Image message dispatch |
 
 ## Suggestions Queue And Build Button
 
