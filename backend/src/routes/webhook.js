@@ -710,9 +710,22 @@ router.post('/', async (req, res) => {
                                             replyText = renderSlots(replyText, { tenant: setting, botSettings });
                                         } catch (slotErr) {}
                                     }
-                                    result = await sendTextMessage(fromPhone, replyText, setting);
                                     textToSave = replyText;
                                     interactionType = 'faq_answer';
+                                    const mediaProduct = botReply.media_product;
+                                    if (mediaProduct?.image_url) {
+                                        try {
+                                            result = await sendMediaMessage(fromPhone, 'image', mediaProduct.image_url, replyText, setting);
+                                            typeToSave = 'image';
+                                            interactionType = 'faq_answer_with_image';
+                                            interactionMetadata.product_id = mediaProduct.id || null;
+                                        } catch (mediaErr) {
+                                            console.warn('[Webhook] Product image delivery failed; sending unchanged text reply:', mediaErr.message);
+                                            result = await sendTextMessage(fromPhone, replyText, setting);
+                                        }
+                                    } else {
+                                        result = await sendTextMessage(fromPhone, replyText, setting);
+                                    }
                                 } else if (botReply.type === 'product') {
                                     const product = botReply.data;
                                     interactionType = 'product_answer';
@@ -738,7 +751,7 @@ router.post('/', async (req, res) => {
                                         textToSave = caption;
                                         typeToSave = 'interactive';
                                     } else if (product.image_url) {
-                                        result = await sendMediaMessage(fromPhone, 'image', { link: product.image_url }, caption, setting);
+                                        result = await sendMediaMessage(fromPhone, 'image', product.image_url, caption, setting);
                                         textToSave = caption;
                                         typeToSave = 'image';
                                     } else {

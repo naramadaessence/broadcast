@@ -7,6 +7,7 @@ import Product from '../models/Product.js';
 import FaqPhrasing from '../models/FaqPhrasing.js';
 import { MATCH_THRESHOLD, flagEnabled } from '../config/botConfig.js';
 import { sanitizeProductDescriptionForCatalogue } from '../utils/productCatalogue.js';
+import { selectExplicitProductMedia } from '../utils/productMediaSelection.js';
 import { embeddingForTenant } from '../config/embeddingConfig.js';
 
 const LEGACY_MODEL_ID = 'Xenova/multilingual-e5-small';
@@ -193,6 +194,7 @@ export async function getTenantKnowledge(tenantId, { force = false } = {}) {
             selling_price: p.selling_price,
             category: p.category,
             image_url: p.image_url,
+            images: Array.isArray(p.images) ? p.images : [],
             vec: parseVector(p.product_vector),
             model: p.embedding_model || null,
         }));
@@ -270,7 +272,17 @@ export async function handleSmartReply(tenantId, messageBody, chatHistory = [], 
         const { generateLLMReply } = await import('./llmResponder.js');
         const llmReply = await generateLLMReply(tenantId, messageBody, chatHistory, context.tenant);
         if (llmReply) {
-            return await applySmartFlowSlots(llmReply, context, botSettings);
+            let replyWithMedia = llmReply;
+            try {
+                const { products = [] } = await getTenantKnowledge(tenantId);
+                const mediaProduct = selectExplicitProductMedia(messageBody, products);
+                if (mediaProduct) {
+                    replyWithMedia = { ...llmReply, media_product: mediaProduct };
+                }
+            } catch (mediaErr) {
+                console.warn('[SmartResponder] Product media selection skipped:', mediaErr.message);
+            }
+            return await applySmartFlowSlots(replyWithMedia, context, botSettings);
         }
     } catch (err) {
         console.error('[SmartResponder] DeepSeek LLM failed, falling back to local retrieval:', err.message);

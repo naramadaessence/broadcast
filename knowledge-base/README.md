@@ -12,7 +12,7 @@
 | Hosting | Vercel |
 | Auth | Single-client JWT admin login |
 | WhatsApp API | Meta Cloud API |
-| Smart Automation | Local MiniLM/E5 embeddings with lexical fallback; no external provider key |
+| Smart Automation | DeepSeek Chat for FAQ/product answers, with deterministic application actions and media validation |
 | Test Runner | Node built-in `node:test`, ESLint, Vite build |
 
 ## Directory Structure
@@ -25,7 +25,7 @@ narmada_broadcast/
 │   ├── src/models/                 # MongoDB/Mongoose models
 │   ├── src/routes/                 # API route handlers
 │   ├── src/services/               # WhatsApp, smart bot, jobs, sync services
-│   └── test/regression.test.js     # Static/helper regression contracts
+│   └── test/*.test.js              # Static/helper and product-media regression contracts
 ├── frontend/
 │   ├── src/App.jsx                 # App shell and auth session validation
 │   ├── src/stores/store.js         # Zustand state and API helpers
@@ -41,6 +41,9 @@ narmada_broadcast/
 - Production MongoDB must come from `MONGO_URI`; never commit a MongoDB URI.
 - The old hardcoded Atlas fallback has been removed. Rotate any previously exposed Atlas user.
 - Vercel serves frontend and backend from the same domain; production frontend uses relative `/api/v1/*` calls.
+- Preserve the working DeepSeek prompt and raw customer-facing wording. Product-image attachment is deterministic metadata added after generation, never an instruction injected into the prompt.
+- Attach an image only when the latest customer message identifies one product by exact SKU or complete unique multi-word name. Broad product-family/category questions remain text-only.
+- `DEEPSEEK_API_KEY` is a server-side environment requirement for ordinary FAQ/product answers; never expose it in the browser or store it in tenant settings.
 - Do not reintroduce self-service signup, pricing, or multi-tenant plan gates unless the business requirement changes.
 - Keep `frontend/package-lock.json` and `backend/package-lock.json` in sync with their package files; Vercel deploys from the lockfiles.
 - Run backend tests, frontend lint/build, and audits before deployment handoff.

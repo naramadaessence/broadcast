@@ -18,8 +18,8 @@ Express API on Vercel (backend/src/app.js)
   |
   +--> MongoDB Atlas via Mongoose models
   +--> Meta WhatsApp Cloud API
+  +--> DeepSeek Chat API for FAQ/product answer text
   +--> Razorpay/Shopify integrations when configured
-  +--> Local Smart Automation embeddings and lexical fallback
 ```
 
 ## Layers & Responsibilities
@@ -30,7 +30,7 @@ Express API on Vercel (backend/src/app.js)
 | Backend/API | Express.js | Route handling, JWT auth, singleton settings loading, integration orchestration |
 | Database | MongoDB Atlas, Mongoose | Contacts, settings, campaigns, messages, orders, products, smart bot records |
 | Auth | JWT | Single admin session validation through `/api/v1/auth/me` |
-| Smart Automation | Smart responder service | FAQ/product matching with local embeddings and lexical fallback |
+| Smart Automation | DeepSeek responder plus deterministic orchestration | Generated FAQ/product text, language/catalogue actions, exact-product media selection, and handoff state |
 | Hosting | Vercel | Static frontend and Node API functions routed by `vercel.json` |
 | Testing | `node:test`, ESLint, Vite | Regression contracts, lint, production build verification |
 
@@ -46,11 +46,11 @@ Express API on Vercel (backend/src/app.js)
 
 ### Knowledge Base And Bot Reply
 
-1. Admin creates FAQ entries from the Knowledge Base UI.
-2. Backend stores FAQs and attempts to generate local vectors with the active embedding model.
-3. FAQ, alternate phrasing, and product vectors are cached in memory for fast matching.
-4. When vectors are missing or unavailable, `scoreTextMatch()` provides a deterministic lexical fallback.
-5. The webhook smart responder uses the same `handleSmartReply()` path for incoming WhatsApp text.
+1. Admin curates FAQ entries and catalogue products in MongoDB.
+2. `handleSmartReply()` runs deterministic language and catalogue actions, then asks DeepSeek to write the FAQ/product answer from the supplied business context and recent conversation.
+3. The DeepSeek prompt and generated text remain unchanged by media delivery.
+4. `selectExplicitProductMedia()` independently checks only the latest customer message. It returns stored media only for one exact SKU or complete unique multi-word product name; broad and multi-product requests return no media metadata.
+5. The webhook sends the stored image URL as a WhatsApp media link with the original DeepSeek text as its caption. A media error falls back to that same text.
 
 ### Vercel API Request
 
@@ -64,7 +64,7 @@ Express API on Vercel (backend/src/app.js)
 - Single-client singleton settings document: `Setting` uses `singletonId: admin_settings`.
 - Same-origin API deployment: no production `VITE_API_URL` is required.
 - Serverless-safe uploads: upload helpers use writable temp storage where needed.
-- Local embeddings improve matching, but the lexical fallback must keep the app usable if vectors are missing.
+- DeepSeek owns FAQ/product answer wording; deterministic application code owns actions, product identity validation, media transport, and fallback delivery.
 - Static/helper regression tests: tests avoid live MongoDB, Meta, Razorpay, or Vercel dependencies.
 
 ## External Dependencies
@@ -73,6 +73,7 @@ Express API on Vercel (backend/src/app.js)
 |------------|---------|--------------|
 | MongoDB Atlas | Primary persistence | Backend routes fail; login/settings/KB unavailable |
 | Meta WhatsApp Cloud API | Templates, messages, webhooks, media | Broadcast/chat send and media retrieval fail |
+| DeepSeek API | FAQ and product answer text | Ordinary knowledge answers cannot be generated; deterministic application actions remain available |
 | Razorpay | Payment links when configured | Payment-link flows fail |
 | Shopify | Optional product sync | Shopify sync fails; local catalogue still works |
 | Vercel | Hosting and deployment | Site/API unavailable |
@@ -89,4 +90,5 @@ Express API on Vercel (backend/src/app.js)
 - Do not point this fork at the original SaaS database.
 - Do not add tenant-seat billing or signup flows unless the client requirement changes.
 - Do not hardcode MongoDB, JWT, Meta, Razorpay, Shopify, or SMTP secrets.
-- Do not remove the lexical fallback unless another no-key bot path replaces it.
+- Do not change the working DeepSeek prompt to make media delivery work.
+- Do not infer one product image from a family/category request or from generated text alone.

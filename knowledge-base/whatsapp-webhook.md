@@ -17,13 +17,15 @@ single-client product.
 | `backend/src/services/messageTriage.js` | Classifies no-match messages before fallback, learning, or handoff. |
 | `backend/src/services/supportFeedback.js` | Parses Good/Bad support-feedback button replies and defines the thank-you acknowledgement. |
 | `backend/src/services/smartResponder.js` | Finds FAQ/product/retrieval replies and delegates Smart Flow checks. |
+| `backend/src/utils/productMediaSelection.js` | Adds optional trusted product media metadata after DeepSeek returns. |
 | `backend/src/services/smartFlows.js` | Handles order status, product search, and explicit customer support intents. |
 | `backend/src/models/WhatsAppConversation.js` | Stores chat state, including `bot_paused`, `needs_human`, `handoff_reason`, and `bot_state`. |
 | `backend/src/models/WhatsAppChatMessage.js` | Stores inbound and outbound messages shown in Chat Inbox. |
 
 ## Conventions And Rules
 
-- Do not require an external provider key for webhook automation replies.
+- `DEEPSEEK_API_KEY` stays server-side. Never read it from the customer payload,
+  expose it through the webhook, or persist it in tenant-facing settings.
 - Always store inbound messages before automation logic so Chat Inbox reflects
   what the customer sent even if automation fails.
 - Respect `conversation.bot_paused`; paused conversations must not receive
@@ -49,6 +51,11 @@ single-client product.
   `support_feedback_received`, and skip Smart Automation.
 - Do not parse typed "Good" or "Bad" text as support feedback; only stable
   button IDs should count as a resolved-chat rating.
+- Preserve DeepSeek FAQ/product text exactly. If `media_product` identifies one
+  explicit stored product, send its image URL as a string with that text as the
+  caption; otherwise send the normal text reply.
+- If WhatsApp rejects product media, catch that media error and send the same
+  text answer. Do not turn a media failure into a lost bot response.
 
 ## Known Gotchas
 
@@ -68,6 +75,9 @@ single-client product.
   ratings can accidentally become Smart Automation input.
 - Status callbacks and inbound messages share the route; avoid changes that
   make message-processing failures block status updates for unrelated entries.
+- `sendMediaMessage()` treats string media as a public link and object media as
+  `{ id }`. Passing `{ link: imageUrl }` creates an undefined ID rather than a
+  valid WhatsApp link payload.
 
 ## How It Is Tested
 
@@ -82,6 +92,8 @@ single-client product.
 - Support feedback parsing, webhook short-circuiting before Smart Automation,
   rating storage, and thank-you acknowledgement.
 - Chat Inbox route contracts that consume `needs_human` and handoff state.
+- Exact-product DeepSeek media metadata, unchanged caption delivery, broad-family
+  text-only behavior, correct `image.link` payloads, and media-error text fallback.
 
 Run:
 

@@ -4,15 +4,18 @@
 
 Smart Automation answers customer WhatsApp messages from the client's own FAQ,
 product, order, and store-hours data. It powers the Knowledge Base test console,
-the Settings automation control center, and webhook auto-replies. Matching is
-self-contained: the backend uses local embedding models (such as `multilingual-e5-small` to natively support queries in English, Hindi, and Gujarati) when vectors are
-available and deterministic lexical matching as the fallback.
+the Settings automation control center, and webhook auto-replies. The active
+FAQ/product answer writer is DeepSeek Chat. Deterministic application code still
+owns language/catalogue actions, Smart Flows, no-match triage, handoff state, and
+validation of any stored product media attached after generation.
 
 ## Structure
 
 | File | Responsibility |
 |------|----------------|
-| `backend/src/services/smartResponder.js` | Main FAQ/product reply matcher, local vector cache, lexical fallback |
+| `backend/src/services/llmResponder.js` | Working DeepSeek prompt, bounded recent history, FAQ/product context, and raw answer text |
+| `backend/src/services/smartResponder.js` | Deterministic actions, DeepSeek orchestration, cached knowledge loading, and post-answer media metadata |
+| `backend/src/utils/productMediaSelection.js` | Pure exact-SKU/complete-name media selection that rejects broad, duplicate, and multi-product requests |
 | `backend/src/config/embeddingConfig.js` | Local MiniLM and multilingual E5 model registry |
 | `backend/src/services/botLearning.js` | Analytics, unanswered logging, suggestions, teach-from-chat helpers |
 | `backend/src/services/messageTriage.js` | Deterministic no-match triage for noise, chatter, human requests, and FAQ-gap candidates |
@@ -69,9 +72,16 @@ payment, return, COD, price, shop, and warranty.
 
 ## Conventions And Rules
 
-- Do not add any external provider key requirement for Smart Automation.
-- Configure local model cache paths before loading `@huggingface/transformers` pipelines; Vercel must use a writable temp cache, not `node_modules`.
-- FAQ and product saves must remain usable even if vector generation fails.
+- DeepSeek is the active FAQ/product answer writer. Preserve the working prompt,
+  model settings, recent-history behavior, raw text parsing, and generated wording.
+- Do not ask DeepSeek to emit image tags, image URLs, product IDs, or a different
+  product-answer format. Media delivery must not change the answer contract.
+- Select media only from trusted stored product data after generation and only
+  when the latest customer message identifies one product by exact unique SKU or
+  complete unique multi-word name.
+- Broad family/category requests, generic single-word names, duplicate identifiers,
+  and comparisons remain text-only so DeepSeek can present choices normally.
+- FAQ and product saves must remain usable even if legacy vector generation fails.
 - Do not let a no-order status flow block FAQ/product answers. `order_not_found` handoff is a fallback after retrieval cannot answer.
 - If no FAQ, product, retrieval answer, or Smart Flow reply matches a customer
   message, triage the miss before escalating. Noise/chatter should not create
@@ -91,13 +101,22 @@ payment, return, COD, price, shop, and warranty.
 
 ## Known Gotchas
 
-- Vercel functions are stateless; local model warmup can happen again after cold starts.
-- Vercel's `/var/task` bundle is read-only. `smartResponder.js` points Transformers.js at `os.tmpdir()/narmada-transformers-cache`; only override it with `TRANSFORMERS_CACHE_DIR` when the target path is writable.
+- DeepSeek has a five-second request timeout in `llmResponder.js`. A provider
+  failure returns no generated answer; deterministic actions still run outside it.
+- An image URL supplied to DeepSeek as context does not itself create WhatsApp
+  media. The webhook needs validated `media_product` metadata from application code.
+- `sendMediaMessage()` accepts a URL string or an object containing a Meta media
+  `id`. Passing `{ link: url }` is interpreted as an ID object and produces an
+  invalid media payload.
+- Media errors must fall back to the unchanged DeepSeek text so an image problem
+  never suppresses an otherwise valid answer.
 - Order-status intent can match broad delivery/payment/order wording. When no order exists for that phone, the handoff must be deferred so FAQ/product retrieval can answer policy questions first.
 - Unknown-message handoff confirmation is a webhook concern, not a Smart
   Responder match. If you change no-match behavior, read
   `whatsapp-webhook.md` and keep the pending state persisted in MongoDB.
-- If vectors are empty because a previous deployment skipped embedding, use the Settings re-embed action.
+- Legacy vector fields and re-embed controls still exist for older administration
+  paths, but `handleSmartReply()` does not use them as an answer fallback after
+  DeepSeek returns null.
 - Do not rename the persisted `bot_settings` field without a migration; it is internal state even though the UI says Smart Automation.
 
 ## How It Is Tested
@@ -106,7 +125,11 @@ payment, return, COD, price, shop, and warranty.
 
 - Smart Automation route contracts used by Settings.
 - Knowledge Base list/test/phrasings contracts used by the frontend.
-- `scoreTextMatch()` behavior for text-only FAQ/product matching.
+- `selectExplicitProductMedia()` exact SKU/name selection, ambiguity rejection,
+  trusted URL validation, and broad-family text-only behavior.
+- WhatsApp media payloads containing a real `image.link` plus the unchanged caption.
+- Static contracts that preserve the working DeepSeek multi-product prompt and
+  keep product media outside `llmResponder.js`.
 - Serverless-safe Transformers.js cache configuration for local model downloads.
 - No-order Smart Flow fallback behavior before human handoff.
 - Unknown-message ask-before-handoff confirmation behavior.
@@ -114,7 +137,7 @@ payment, return, COD, price, shop, and warranty.
   chatter, and meaningful FAQ-gap candidates.
 - Suggestions Queue Build filtering so only `learning_status: 'candidate'`
   unanswered messages become FAQ-gap suggestions.
-- Absence of external provider key requirements in active source and product docs.
+- Text fallback when WhatsApp media delivery throws.
 
 Run:
 

@@ -2,6 +2,15 @@
 
 This document logs the architectural choices made during the development of the WhatsApp Broadcast SaaS.
 
+## Decision: DeepSeek Answer Wording And Product Media Are Separate Contracts
+**Date**: 2026-07-16
+**Status**: Accepted
+**Context**: The working DeepSeek prompt produced the desired multilingual FAQ and product answers, but every generated result was classified as `faq`, so the webhook sent only text. An attempted fix changed the product prompt to require `[IMAGE: url]` markers and shorter captions; that changed product-answer behavior and still passed the media URL in a shape the WhatsApp helper interpreted as an undefined media ID.
+**Decision**: Preserve `llmResponder.js` prompt, model settings, history, parsing, and generated text unchanged. After DeepSeek returns, deterministically add optional media metadata only when the latest customer message contains one exact unique SKU or one complete unique multi-word product name. Never attach media to family/category, generic single-word, duplicate-identifier, or multi-product requests. Send the trusted stored URL as a string and use the unchanged DeepSeek answer as the caption; if media delivery fails, send that same text.
+**Alternatives Considered**: Ask DeepSeek to emit an image marker or product ID, parse any generated image URL, convert every product mention into one image, or replace the generated answer with the legacy product caption. Prompt/output changes already altered desired behavior; generated URLs/IDs are not trusted identity; broad mentions can match multiple products; and replacing the answer discards the working DeepSeek wording.
+**Consequences**: Exact product questions can receive the stored product image without changing DeepSeek behavior. Broad product discovery stays text-only and lets DeepSeek present choices. Follow-ups that do not repeat an exact product identifier remain text-only by design, and media failures degrade to the original answer instead of suppressing the reply.
+**Superseded By**:
+
 ## Decision: No-Match Learning Uses Deterministic Triage Before Suggestions
 **Date**: 2026-07-03
 **Status**: Accepted
@@ -103,12 +112,12 @@ This document logs the architectural choices made during the development of the 
 
 ## Decision: Single-Client Vercel Product Uses Local Smart Automation
 **Date**: 2026-07-02
-**Status**: Accepted
+**Status**: Superseded
 **Context**: The Narmada fork should be an independent single-client version of the main WhatsApp Broadcast platform, not a separate cloud-AI chatbot product. Requiring a provider key for Smart Automation created confusion and diverged from the main product.
 **Decision**: Use local embedding models through `@huggingface/transformers` plus deterministic lexical fallback. Keep Vercel/MongoDB isolation for this client's deployment, but do not require Gemini, OpenAI, or any external provider key for FAQ/product matching or re-embedding.
 **Alternatives Considered**: Keep the Gemini embedding endpoint as optional, or remove embeddings entirely and use only lexical matching. Optional Gemini was rejected because it changes the product/deployment contract; lexical-only was rejected because the main platform already uses local semantic matching.
 **Consequences**: Vercel env setup only needs product infrastructure secrets like `MONGO_URI` and `JWT_SECRET`; local model cold starts may be slower on Vercel, so lexical fallback remains required.
-**Superseded By**:
+**Superseded By**: [DeepSeek Answer Wording And Product Media Are Separate Contracts](#decision-deepseek-answer-wording-and-product-media-are-separate-contracts)
 
 ## Decision: Preact + Vite Frontend Framework
 **Date**: 2026-04-10

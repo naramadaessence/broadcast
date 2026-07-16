@@ -237,7 +237,7 @@ test('smart responder can score text-only FAQs when vectors are unavailable', as
   assert.equal(scoreTextMatch('delivery charges', 'return policy warranty'), 0);
 });
 
-test('active source and product docs do not require an external AI provider', () => {
+test('active source and product docs contain no stale Gemini provider contract', () => {
   const externalProviderPattern = /gemini|generativelanguage|AI_API_KEY|GEMINI_API_KEY/i;
   const misleadingProductPattern = /AI Assistant|AI chatbot|Chatbot & Hours|AI Status|AI Semantic Engine|Resume AI Bot|Pause AI Bot|AI features/i;
   const checkedFiles = [
@@ -626,5 +626,19 @@ test('Contacts import uses chunked bulkWrite and frontend batching to prevent se
 
   assert.match(storeSource, /CHUNK_SIZE\s*=\s*1000/);
   assert.match(storeSource, /contactsList\.slice\(\s*i\s*,\s*i\s*\+\s*CHUNK_SIZE\s*\)/);
+});
+
+test('DeepSeek product media is attached outside the prompt without changing its answer', () => {
+  const llmResponderSource = readRepoFile('backend/src/services/llmResponder.js');
+  const smartResponderSource = readRepoFile('backend/src/services/smartResponder.js');
+  const webhookSource = readRepoFile('backend/src/routes/webhook.js');
+
+  assert.match(llmResponderSource, /If multiple products match, show all matching products and ask which one they would like to know more about/);
+  assert.doesNotMatch(llmResponderSource, /\[IMAGE:/);
+  assert.match(smartResponderSource, /selectExplicitProductMedia\(messageBody, products\)/);
+  assert.match(smartResponderSource, /replyWithMedia\s*=\s*\{\s*\.\.\.llmReply,\s*media_product:\s*mediaProduct\s*\}/);
+  assert.match(webhookSource, /sendMediaMessage\(fromPhone,\s*'image',\s*mediaProduct\.image_url,\s*replyText,\s*setting\)/);
+  assert.match(webhookSource, /Product image delivery failed; sending unchanged text reply/);
+  assert.doesNotMatch(webhookSource, /sendMediaMessage\(fromPhone,\s*'image',\s*\{\s*link:\s*(?:mediaProduct|product)\.image_url/);
 });
 
