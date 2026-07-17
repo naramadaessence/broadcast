@@ -133,6 +133,9 @@ export default function WhatsAppChat() {
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [templateParams, setTemplateParams] = useState(['', '', '']);
     const messagesEndRef = useRef(null);
+    const chatContainerRef = useRef(null);
+    const prevConvIdRef = useRef(null);
+    const prevLastMsgIdRef = useRef(null);
 
     const [mobileShowChat, setMobileShowChat] = useState(false);
 
@@ -317,8 +320,32 @@ export default function WhatsAppChat() {
     }, [search, activeFilter]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [chatMessages]);
+        if (!chatMessages || chatMessages.length === 0) return;
+        
+        const lastMsgId = chatMessages[chatMessages.length - 1].id;
+        let shouldScroll = false;
+        
+        if (selectedConvId !== prevConvIdRef.current) {
+            shouldScroll = true;
+            prevConvIdRef.current = selectedConvId;
+        } else if (lastMsgId !== prevLastMsgIdRef.current) {
+            const el = chatContainerRef.current;
+            if (el) {
+                const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 300;
+                if (isNearBottom) {
+                    shouldScroll = true;
+                }
+            } else {
+                shouldScroll = true;
+            }
+        }
+        
+        prevLastMsgIdRef.current = lastMsgId;
+        
+        if (shouldScroll) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [chatMessages, selectedConvId]);
 
     const openConversation = async (convId) => {
         setSelectedConvId(convId);
@@ -356,6 +383,9 @@ export default function WhatsAppChat() {
                 await sendChatReply(selectedConvId, messageText.trim());
             }
             setMessageText('');
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
         } catch (err) {
             if (err.message?.includes('24-hour') || err.message?.includes('window')) {
                 showToast('24-hour window expired. Use a template to re-engage.', 'info');
@@ -996,7 +1026,7 @@ export default function WhatsAppChat() {
                                 </div>
                             )}
                             {/* Messages */}
-                            <div className="chat-messages">
+                            <div className="chat-messages" ref={chatContainerRef}>
                                 {chatHasMore && (
                                     <div style={{ textAlign: 'center', padding: '8px 0 12px' }}>
                                         <button

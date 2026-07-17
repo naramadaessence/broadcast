@@ -38,6 +38,9 @@ handoffs, teach missed answers into Smart FAQs, and inspect WhatsApp media.
   Chat Inbox is mounted because Vercel serverless Socket.IO refresh is not
   reliable enough on its own. Polling refreshes the conversation list and the
   currently open thread, skips hidden tabs, and refreshes on focus/visibility.
+  When the currently open thread refreshes and receives new messages, the UI only
+  auto-scrolls to the bottom if the user is already near the bottom (within 300px),
+  allowing users to read older messages uninterrupted by polling.
 - Unknown-message Smart Automation misses should not appear in Needs Human until
   the customer taps or types Yes on the webhook confirmation prompt. That Yes
   path sets `needs_human`, `bot_paused`, and `handoff_reason =

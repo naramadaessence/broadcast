@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-17 — Fix Aggressive Scroll to Bottom in Chat Inbox
+**What**: 
+- Updated `frontend/src/components/WhatsAppChat.jsx` to only auto-scroll to the bottom when a new conversation is selected, when the user is already near the bottom and a new message arrives (via polling), or when the user themselves sends a message.
+**Why**: 
+- The chat inbox was unconditionally scrolling to the bottom every 5 seconds because the serverless polling fallback (`fetchChatMessages`) would replace the `chatMessages` array and trigger the `scrollIntoView` effect. This interrupted users when they scrolled up to read older messages, making it impossible to read chat history.
+**Files Changed**:
+- `frontend/src/components/WhatsAppChat.jsx`
+- `knowledge-base/changelog.md`
+
 ## 2026-07-16 — Optimize AI WhatsApp Product Responses with Structured JSON and Clean Native Media Messages
 **What**: 
 - Updated `backend/src/services/llmResponder.js` to instruct the DeepSeek LLM to return structured JSON (`{ "product": { ... }, "message": "..." }`) when answering product inquiries or recommendations, and added `stripImageUrlsFromText` to guarantee no raw image URLs ever leak inside conversational text responses.
