@@ -4,11 +4,9 @@
  * with the WhatsApp service layer (which reads tenant.whatsapp_access_token, etc.)
  */
 import Setting from '../models/Setting.js';
-import { initDatabase } from '../database.js';
 
 export const loadSettings = async (req, res, next) => {
     try {
-        await initDatabase();
         let setting = await Setting.findOne({ singletonId: 'admin_settings' });
         if (!setting) {
             setting = await Setting.findOne();

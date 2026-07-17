@@ -62,16 +62,6 @@ app.get('/health', (req, res) => res.json({ status: 'healthy' }));
 app.get('/', (req, res) => res.json({ message: 'WhatsApp Marketing Platform API (MongoDB)' }));
 app.use('/api/v1/uploads', express.static(getUploadsDir()));
 
-// Global database connection middleware for serverless (Vercel)
-app.use(async (req, res, next) => {
-    try {
-        await initDatabase();
-        next();
-    } catch (err) {
-        res.status(500).json({ error: 'Database connection failed' });
-    }
-});
-
 // Public Webhook (No Auth)
 app.use('/api/v1/whatsapp-webhook', webhookRoutes);
 app.use('/api/v1/checkout', checkoutRoutes);

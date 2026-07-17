@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import config from './config.js';
 
-
+let initialized = false;
 const LOCAL_MONGO_URI = 'mongodb://127.0.0.1:27017/narmada_broadcast_dev';
 
 export function resolveMongoUri(env = process.env, appConfig = config) {
@@ -16,11 +16,12 @@ export function resolveMongoUri(env = process.env, appConfig = config) {
 }
 
 const initDatabase = async () => {
-    if (mongoose.connection.readyState === 1) return;
+    if (initialized) return;
     try {
         const uri = resolveMongoUri();
-        await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
+        await mongoose.connect(uri);
         console.log('MongoDB connected successfully');
+        initialized = true;
     } catch (error) {
         console.error('Database connection error:', error);
         throw error;

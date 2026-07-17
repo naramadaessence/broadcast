@@ -1,31 +1,5 @@
 # Changelog
 
-## 2026-07-17 — Fix Vercel Serverless Function Timeout
-**What**: 
-- Added a global Express middleware in `app.js` to explicitly wait for the MongoDB connection on every incoming request.
-- Added a 5-second `serverSelectionTimeoutMS` limit in `mongoose.connect()` inside `database.js` to ensure the application fails fast instead of hanging if the `MONGO_URI` is missing or invalid.
-- Updated `initDatabase` to check `mongoose.connection.readyState` directly to cleanly handle serverless cold starts.
-**Why**: 
-- The Vercel deployment was experiencing `INTERNAL_FUNCTION_INVOCATION_FAILED` (HTTP 500) errors during login because Mongoose was buffering connection promises and timing out in the serverless environment.
-**Files Changed**:
-- `backend/src/app.js`
-- `backend/src/database.js`
-- `backend/src/middleware/loadSettings.js`
-
-## 2026-07-17 — Add Support for Video Templates in WhatsApp Broadcast
-**What**: 
-- Added support for `.mp4` and `.mov` (QuickTime) video file uploads for WhatsApp Template headers.
-- Updated the backend WhatsApp service (`createTemplate` and `editTemplate`) to correctly format header media dynamically (`headerMediaType`) to support `VIDEO` formats in the Meta API.
-- Replaced image-specific endpoints with generic media endpoints (`/templates/upload-media`).
-- Updated the frontend `WhatsAppBroadcast.jsx` to render video previews and accurately reflect the media type of newly created and existing templates.
-**Why**: 
-- User requested the ability to add `.mov` video files to their broadcast templates.
-**Files Changed**:
-- `backend/src/routes/whatsapp.js`
-- `backend/src/services/whatsapp.js`
-- `frontend/src/components/WhatsAppBroadcast.jsx`
-- `frontend/src/stores/store.js`
-
 ## 2026-07-17 — Fix Aggressive Scroll to Bottom in Chat Inbox
 **What**: 
 - Updated `frontend/src/components/WhatsAppChat.jsx` to only auto-scroll to the bottom when a new conversation is selected, when the user is already near the bottom and a new message arrives (via polling), or when the user themselves sends a message.
