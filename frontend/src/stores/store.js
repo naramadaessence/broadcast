@@ -481,10 +481,10 @@ export const useStore = create(
                 return result;
             },
 
-            uploadTemplateImage: async (imageFile) => {
+            uploadTemplateMedia: async (mediaFile) => {
                 const formData = new FormData();
-                formData.append('image', imageFile);
-                const data = await apiUpload('/whatsapp/templates/upload-image', formData);
+                formData.append('media', mediaFile);
+                const data = await apiUpload('/whatsapp/templates/upload-media', formData);
                 return data.headerHandle;
             },
 

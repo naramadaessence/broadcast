@@ -1460,3 +1460,15 @@ All notable changes to the WhatsApp Broadcast SaaS project, in reverse chronolog
 
  
  
+
+## 2026-07-18 - Added Video Upload Support for WhatsApp Templates
+**What**: Enabled video support in WhatsApp template creation and editing flow.
+**Why**: To support rich media broadcasting capabilities alongside existing image support.
+**Files Changed**: 
+- backend/src/routes/whatsapp.js
+- backend/src/services/whatsapp.js
+- frontend/src/stores/store.js
+- frontend/src/components/WhatsAppBroadcast.jsx
+- Updated frontend UI to preview videos using <video> tags instead of <img>.
+- Updated upload limits to 25MB for WhatsApp media endpoints.
+- Refactored header media format checking logic to dynamically switch between 'IMAGE' and 'VIDEO'.

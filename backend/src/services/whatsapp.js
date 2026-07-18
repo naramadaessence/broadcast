@@ -47,22 +47,28 @@ function tenantCacheKey(tenant, key) {
     return `${tenant.id}:${key}`;
 }
 
-async function processAndCacheMediaId(imageUrl, tenant) {
-    const cacheKey = tenantCacheKey(tenant, imageUrl);
+async function processAndCacheMediaId(mediaUrl, tenant) {
+    const cacheKey = tenantCacheKey(tenant, mediaUrl);
     if (mediaIdCache.has(cacheKey)) return mediaIdCache.get(cacheKey);
 
     try {
         const { token, phoneId } = getCredentials(tenant);
-        const imgRes = await fetch(imageUrl);
-        if (!imgRes.ok) throw new Error(`Failed to download image: ${imgRes.statusText}`);
+        const mediaRes = await fetch(mediaUrl);
+        if (!mediaRes.ok) throw new Error(`Failed to download media: ${mediaRes.statusText}`);
 
-        const arrayBuffer = await imgRes.arrayBuffer();
+        const arrayBuffer = await mediaRes.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+        const contentType = mediaRes.headers.get('content-type') || 'application/octet-stream';
 
         const blob = new Blob([buffer], { type: contentType });
         const formData = new FormData();
-        formData.append('file', blob, 'header_image.jpg');
+        
+        let filename = 'header_media';
+        if (contentType.includes('video')) filename += '.mp4';
+        else if (contentType.includes('image')) filename += '.jpg';
+        else filename += '.pdf';
+        
+        formData.append('file', blob, filename);
         formData.append('type', contentType);
         formData.append('messaging_product', 'whatsapp');
 
@@ -127,7 +133,14 @@ export async function sendTemplateMessage(phone, campaignName, templateParams = 
             }
         } else if (headerComp.format === 'VIDEO') {
             const videoUrl = headerComp.example?.header_handle?.[0] || headerComp.example?.header_url?.[0];
-            if (videoUrl) components.push({ type: "header", parameters: [{ type: "video", video: { link: videoUrl } }] });
+            if (videoUrl) {
+                let videoSpec = { link: videoUrl };
+                if (videoUrl.includes('scontent.whatsapp.net')) {
+                    const mediaId = await processAndCacheMediaId(videoUrl, tenant);
+                    if (mediaId) videoSpec = { id: mediaId };
+                }
+                components.push({ type: "header", parameters: [{ type: "video", video: videoSpec }] });
+            }
         } else if (headerComp.format === 'DOCUMENT') {
             const docUrl = headerComp.example?.header_handle?.[0] || headerComp.example?.header_url?.[0];
             if (docUrl) components.push({ type: "header", parameters: [{ type: "document", document: { link: docUrl } }] });
@@ -401,14 +414,14 @@ export async function uploadMediaForTemplate(imageBuffer, mimeType = 'image/jpeg
 /**
  * Create a new WhatsApp template
  */
-export async function createTemplate({ name, category, language, bodyText, headerImageHandle, footerText, buttons = [] }, tenant) {
+export async function createTemplate({ name, category, language, bodyText, headerMediaHandle, headerFormat = 'IMAGE', footerText, buttons = [] }, tenant) {
     const { token, wabaId } = getCredentials(tenant);
     if (!wabaId) throw new Error('WhatsApp Business Account ID not configured.');
 
     const components = [];
 
-    if (headerImageHandle) {
-        components.push({ type: 'HEADER', format: 'IMAGE', example: { header_handle: [headerImageHandle] } });
+    if (headerMediaHandle) {
+        components.push({ type: 'HEADER', format: headerFormat, example: { header_handle: [headerMediaHandle] } });
     }
 
     const bodyComponent = { type: 'BODY', text: bodyText };
@@ -493,14 +506,14 @@ export async function fetchTemplates(tenant) {
  * Edit an existing WhatsApp template (Meta API: POST /{template_id})
  * Only components can be edited — name, category, language cannot change.
  */
-export async function editTemplate(templateId, { bodyText, headerImageHandle, footerText, buttons = [] }, tenant) {
+export async function editTemplate(templateId, { bodyText, headerMediaHandle, headerFormat = 'IMAGE', footerText, buttons = [] }, tenant) {
     const { token, wabaId } = getCredentials(tenant);
     if (!wabaId) throw new Error('WhatsApp Business Account ID not configured.');
 
     const components = [];
 
-    if (headerImageHandle) {
-        components.push({ type: 'HEADER', format: 'IMAGE', example: { header_handle: [headerImageHandle] } });
+    if (headerMediaHandle) {
+        components.push({ type: 'HEADER', format: headerFormat, example: { header_handle: [headerMediaHandle] } });
     }
 
     const bodyComponent = { type: 'BODY', text: bodyText };

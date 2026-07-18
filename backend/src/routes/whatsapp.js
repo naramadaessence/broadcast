@@ -14,7 +14,7 @@ import { auth } from '../middleware/auth.js';
 import { loadSettings } from '../middleware/loadSettings.js';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 // Auth + load settings (provides req.tenant)
 router.use(auth);
@@ -338,15 +338,15 @@ router.get('/campaigns/:id', async (req, res) => {
 });
 
 /**
- * POST /api/v1/whatsapp/templates/upload-image
+ * POST /api/v1/whatsapp/templates/upload-media
  */
-router.post('/templates/upload-image', upload.single('image'), async (req, res) => {
+router.post('/templates/upload-media', upload.single('media'), async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ error: 'No image file provided' });
+        if (!req.file) return res.status(400).json({ error: 'No media file provided' });
         const headerHandle = await uploadMediaForTemplate(req.file.buffer, req.file.mimetype, req.file.originalname, req.tenant);
         res.json({ success: true, headerHandle });
     } catch (error) {
-        res.status(500).json({ error: error.message || 'Failed to upload image' });
+        res.status(500).json({ error: error.message || 'Failed to upload media' });
     }
 });
 
@@ -355,13 +355,14 @@ router.post('/templates/upload-image', upload.single('image'), async (req, res) 
  */
 router.post('/templates', async (req, res) => {
     try {
-        const { name, category, language, bodyText, headerImageHandle, footerText, buttons } = req.body;
+        const { name, category, language, bodyText, headerImageHandle, headerMediaHandle, headerFormat, footerText, buttons } = req.body;
         if (!name) return res.status(400).json({ error: 'Template name is required' });
         if (!bodyText) return res.status(400).json({ error: 'Body text is required' });
 
+        const handle = headerMediaHandle || headerImageHandle;
         const result = await createTemplate({
             name, category: category || 'MARKETING', language: language || 'en',
-            bodyText, headerImageHandle: headerImageHandle || null,
+            bodyText, headerMediaHandle: handle || null, headerFormat: headerFormat || 'IMAGE',
             footerText: footerText || null, buttons: buttons || [],
         }, req.tenant);
 
@@ -376,12 +377,14 @@ router.post('/templates', async (req, res) => {
  */
 router.put('/templates/:id', async (req, res) => {
     try {
-        const { bodyText, headerImageHandle, footerText, buttons } = req.body;
+        const { bodyText, headerImageHandle, headerMediaHandle, headerFormat, footerText, buttons } = req.body;
         if (!bodyText) return res.status(400).json({ error: 'Body text is required' });
 
+        const handle = headerMediaHandle || headerImageHandle;
         const result = await editTemplate(req.params.id, {
             bodyText,
-            headerImageHandle: headerImageHandle || null,
+            headerMediaHandle: handle || null,
+            headerFormat: headerFormat || 'IMAGE',
             footerText: footerText || null,
             buttons: buttons || [],
         }, req.tenant);
