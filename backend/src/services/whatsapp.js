@@ -401,14 +401,14 @@ export async function uploadMediaForTemplate(imageBuffer, mimeType = 'image/jpeg
 /**
  * Create a new WhatsApp template
  */
-export async function createTemplate({ name, category, language, bodyText, headerImageHandle, headerMediaType = 'IMAGE', footerText, buttons = [] }, tenant) {
+export async function createTemplate({ name, category, language, bodyText, headerImageHandle, footerText, buttons = [] }, tenant) {
     const { token, wabaId } = getCredentials(tenant);
     if (!wabaId) throw new Error('WhatsApp Business Account ID not configured.');
 
     const components = [];
 
     if (headerImageHandle) {
-        components.push({ type: 'HEADER', format: headerMediaType, example: { header_handle: [headerImageHandle] } });
+        components.push({ type: 'HEADER', format: 'IMAGE', example: { header_handle: [headerImageHandle] } });
     }
 
     const bodyComponent = { type: 'BODY', text: bodyText };
@@ -493,14 +493,14 @@ export async function fetchTemplates(tenant) {
  * Edit an existing WhatsApp template (Meta API: POST /{template_id})
  * Only components can be edited — name, category, language cannot change.
  */
-export async function editTemplate(templateId, { bodyText, headerImageHandle, headerMediaType = 'IMAGE', footerText, buttons = [] }, tenant) {
+export async function editTemplate(templateId, { bodyText, headerImageHandle, footerText, buttons = [] }, tenant) {
     const { token, wabaId } = getCredentials(tenant);
     if (!wabaId) throw new Error('WhatsApp Business Account ID not configured.');
 
     const components = [];
 
     if (headerImageHandle) {
-        components.push({ type: 'HEADER', format: headerMediaType, example: { header_handle: [headerImageHandle] } });
+        components.push({ type: 'HEADER', format: 'IMAGE', example: { header_handle: [headerImageHandle] } });
     }
 
     const bodyComponent = { type: 'BODY', text: bodyText };

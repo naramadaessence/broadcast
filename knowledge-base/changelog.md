@@ -1,20 +1,5 @@
 # Changelog
 
-## 2026-07-17 — Add Support for Video Templates in WhatsApp Broadcast
-**What**: 
-- Added support for `.mp4` and `.mov` (QuickTime) video file uploads for WhatsApp Template headers.
-- Updated the backend WhatsApp service (`createTemplate` and `editTemplate`) to correctly format header media dynamically (`headerMediaType`) to support `VIDEO` formats in the Meta API.
-- Replaced image-specific endpoints with generic media endpoints (`/templates/upload-media`).
-- Updated the frontend `WhatsAppBroadcast.jsx` to render video previews and accurately reflect the media type of newly created and existing templates.
-**Why**: 
-- User requested the ability to add `.mov` and `.mp4` video files to their broadcast templates.
-**Files Changed**:
-- `backend/src/routes/whatsapp.js`
-- `backend/src/services/whatsapp.js`
-- `frontend/src/components/WhatsAppBroadcast.jsx`
-- `frontend/src/stores/store.js`
-- `knowledge-base/changelog.md`
-
 ## 2026-07-17 — Fix Aggressive Scroll to Bottom in Chat Inbox
 **What**: 
 - Updated `frontend/src/components/WhatsAppChat.jsx` to only auto-scroll to the bottom when a new conversation is selected, when the user is already near the bottom and a new message arrives (via polling), or when the user themselves sends a message.
