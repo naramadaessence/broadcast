@@ -431,7 +431,7 @@ export async function uploadChunkToMeta(sessionId, fileOffset, buffer, mimeType,
     const uploadRes = await fetch(`${WHATSAPP_API_URL}/${sessionId}`, {
         method: 'POST',
         headers: { 'Authorization': `OAuth ${token}`, 'file_offset': fileOffset.toString(), 'Content-Type': mimeType },
-        body: buffer,
+        body: new Uint8Array(buffer),
     });
     const textData = await uploadRes.text();
     let uploadData;
@@ -442,7 +442,7 @@ export async function uploadChunkToMeta(sessionId, fileOffset, buffer, mimeType,
     }
     
     if (!uploadRes.ok) {
-        const defaultMsg = `Failed to upload media chunk. Raw: ${JSON.stringify(uploadData)}`;
+        const defaultMsg = `Failed to upload media chunk (Offset sent: ${fileOffset}). Raw: ${JSON.stringify(uploadData)}`;
         throw new Error(formatMetaError(uploadData, defaultMsg));
     }
     return uploadData;
