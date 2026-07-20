@@ -217,8 +217,8 @@ export default function WhatsAppBroadcast() {
     const handleMediaSelect = (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 4.5 * 1024 * 1024) {
-                showToast('File must be smaller than 4.5MB due to server limits', 'error');
+            if (file.size > 16 * 1024 * 1024) {
+                showToast('File must be smaller than 16MB', 'error');
                 e.target.value = '';
                 return;
             }
@@ -237,8 +237,8 @@ export default function WhatsAppBroadcast() {
     const handleEditMediaSelect = (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 4.5 * 1024 * 1024) {
-                showToast('File must be smaller than 4.5MB due to server limits', 'error');
+            if (file.size > 16 * 1024 * 1024) {
+                showToast('File must be smaller than 16MB', 'error');
                 e.target.value = '';
                 return;
             }

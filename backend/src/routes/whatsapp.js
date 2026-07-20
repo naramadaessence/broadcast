@@ -9,7 +9,7 @@ import WhatsAppCampaign from '../models/WhatsAppCampaign.js';
 import WhatsAppMessage from '../models/WhatsAppMessage.js';
 import WhatsAppConversation from '../models/WhatsAppConversation.js';
 import WhatsAppChatMessage from '../models/WhatsAppChatMessage.js';
-import { sendTemplateMessage, sendBulkMessages, normalizePhone, uploadMediaForTemplate, createTemplate, editTemplate, fetchTemplates, deleteTemplate } from '../services/whatsapp.js';
+import { sendTemplateMessage, sendBulkMessages, normalizePhone, uploadMediaForTemplate, createTemplate, editTemplate, fetchTemplates, deleteTemplate, startUploadSession, uploadChunkToMeta } from '../services/whatsapp.js';
 import { auth } from '../middleware/auth.js';
 import { loadSettings } from '../middleware/loadSettings.js';
 
@@ -339,6 +339,7 @@ router.get('/campaigns/:id', async (req, res) => {
 
 /**
  * POST /api/v1/whatsapp/templates/upload-media
+ * Legacy single-payload upload
  */
 router.post('/templates/upload-media', upload.single('media'), async (req, res) => {
     try {
@@ -347,6 +348,38 @@ router.post('/templates/upload-media', upload.single('media'), async (req, res) 
         res.json({ success: true, headerHandle });
     } catch (error) {
         res.status(500).json({ error: error.message || 'Failed to upload media' });
+    }
+});
+
+/**
+ * POST /api/v1/whatsapp/templates/upload-media/session
+ * Step 1 for chunked uploads
+ */
+router.post('/templates/upload-media/session', async (req, res) => {
+    try {
+        const { fileLength, fileType, fileName } = req.body;
+        if (!fileLength || !fileType || !fileName) return res.status(400).json({ error: 'Missing file info' });
+        const sessionId = await startUploadSession(fileLength, fileType, fileName, req.tenant);
+        res.json({ success: true, sessionId });
+    } catch (error) {
+        res.status(500).json({ error: error.message || 'Failed to start upload session' });
+    }
+});
+
+/**
+ * POST /api/v1/whatsapp/templates/upload-media/chunk
+ * Step 2 for chunked uploads (called sequentially)
+ */
+router.post('/templates/upload-media/chunk', upload.single('chunk'), async (req, res) => {
+    try {
+        const { sessionId, fileOffset } = req.body;
+        if (!req.file) return res.status(400).json({ error: 'No chunk file provided' });
+        if (!sessionId) return res.status(400).json({ error: 'Missing sessionId' });
+        
+        const result = await uploadChunkToMeta(sessionId, parseInt(fileOffset || 0), req.file.buffer, req.file.mimetype, req.tenant);
+        res.json({ success: true, result });
+    } catch (error) {
+        res.status(500).json({ error: error.message || 'Failed to upload chunk' });
     }
 });
 

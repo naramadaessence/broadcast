@@ -1,14 +1,17 @@
 # Changelog
 
-## 2026-07-20 — Fix 413 Payload Too Large Error on Template Media Upload
+## 2026-07-20 — Implement Chunked Media Uploads for Large Videos
 **What**: 
-- Updated `frontend/src/stores/store.js` (`apiUpload`) to gracefully handle non-JSON HTML error responses (specifically HTTP 413 Payload Too Large) from the server instead of throwing a JSON parse exception (`Unexpected token 'R'`).
-- Added a 4.5MB file size limit check in `frontend/src/components/WhatsAppBroadcast.jsx` (`handleMediaSelect` and `handleEditMediaSelect`) to proactively prevent users from selecting media larger than Vercel's serverless payload limit.
+- Updated `frontend/src/stores/store.js` (`uploadTemplateMedia`) to split large media files into 4MB chunks and upload them sequentially.
+- Created `POST /api/v1/whatsapp/templates/upload-media/session` and `POST /api/v1/whatsapp/templates/upload-media/chunk` in `backend/src/routes/whatsapp.js` to proxy chunked uploads directly to Meta's Resumable Upload API.
+- Replaced the temporary 4.5MB file size limit in `frontend/src/components/WhatsAppBroadcast.jsx` with Meta's actual 16MB limit for video templates.
 **Why**: 
-- Users were uploading videos larger than 4.5MB. Vercel's Edge/Serverless architecture has a hard limit of 4.5MB for request bodies. When exceeded, Vercel returns an HTML page starting with "Request Entity Too Large", which caused the frontend JSON parser to crash and show an unhelpful error toast (`Unexpected token 'R'`). The client-side check prevents this and provides a clear constraint to the user.
+- Users need to upload videos up to 16MB (Meta's limit) for broadcast templates, but Vercel's Serverless Functions enforce a hard 4.5MB limit on request bodies. By chunking the file into 4MB pieces on the frontend and proxying those chunks through the backend directly into Meta's Resumable Upload session, we bypass the Vercel limit entirely and support full-size 15MB/16MB videos securely.
 **Files Changed**:
 - `frontend/src/stores/store.js`
 - `frontend/src/components/WhatsAppBroadcast.jsx`
+- `backend/src/routes/whatsapp.js`
+- `backend/src/services/whatsapp.js`
 - `knowledge-base/changelog.md`
 
 ## 2026-07-20 — Add Pagination to Manual Contact Selection in WhatsApp Broadcast

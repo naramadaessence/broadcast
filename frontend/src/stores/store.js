@@ -491,10 +491,42 @@ export const useStore = create(
             },
 
             uploadTemplateMedia: async (mediaFile) => {
-                const formData = new FormData();
-                formData.append('media', mediaFile);
-                const data = await apiUpload('/whatsapp/templates/upload-media', formData);
-                return data.headerHandle;
+                const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks (under Vercel's 4.5MB limit)
+                
+                if (mediaFile.size <= CHUNK_SIZE) {
+                    const formData = new FormData();
+                    formData.append('media', mediaFile);
+                    const data = await apiUpload('/whatsapp/templates/upload-media', formData);
+                    return data.headerHandle;
+                }
+
+                // Chunked upload for large files
+                const sessionReq = await api('/whatsapp/templates/upload-media/session', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        fileLength: mediaFile.size,
+                        fileType: mediaFile.type,
+                        fileName: mediaFile.name
+                    })
+                });
+                
+                const sessionId = sessionReq.sessionId;
+                let offset = 0;
+                let lastResult = null;
+
+                while (offset < mediaFile.size) {
+                    const chunk = mediaFile.slice(offset, offset + CHUNK_SIZE);
+                    const formData = new FormData();
+                    formData.append('chunk', chunk, mediaFile.name);
+                    formData.append('sessionId', sessionId);
+                    formData.append('fileOffset', offset.toString());
+
+                    const res = await apiUpload('/whatsapp/templates/upload-media/chunk', formData);
+                    lastResult = res.result;
+                    offset += CHUNK_SIZE;
+                }
+
+                return lastResult?.h;
             },
 
             createWhatsAppTemplate: async (templateData) => {

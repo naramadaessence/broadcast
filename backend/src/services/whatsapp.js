@@ -390,7 +390,7 @@ export async function sendBulkMessages(recipients, campaignName, templateParams 
 }
 
 /**
- * Upload media for template creation (resumable upload)
+ * Upload media for template creation (resumable upload - single payload)
  */
 export async function uploadMediaForTemplate(imageBuffer, mimeType = 'image/jpeg', fileName = 'template_header.jpg', tenant) {
     const { token } = getCredentials(tenant);
@@ -409,6 +409,33 @@ export async function uploadMediaForTemplate(imageBuffer, mimeType = 'image/jpeg
     if (!uploadRes.ok || !uploadData.h) throw new Error(formatMetaError(uploadData, 'Failed to upload media file'));
 
     return uploadData.h;
+}
+
+/**
+ * Start an upload session for chunked uploading
+ */
+export async function startUploadSession(fileLength, mimeType, fileName, tenant) {
+    const { token } = getCredentials(tenant);
+    const sessionUrl = `${WHATSAPP_API_URL}/app/uploads?file_length=${fileLength}&file_type=${encodeURIComponent(mimeType)}&file_name=${encodeURIComponent(fileName)}`;
+    const sessionRes = await fetch(sessionUrl, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+    const sessionData = await sessionRes.json();
+    if (!sessionRes.ok || !sessionData.id) throw new Error(formatMetaError(sessionData, 'Failed to create upload session'));
+    return sessionData.id;
+}
+
+/**
+ * Upload a chunk to an existing session
+ */
+export async function uploadChunkToMeta(sessionId, fileOffset, buffer, mimeType, tenant) {
+    const { token } = getCredentials(tenant);
+    const uploadRes = await fetch(`${WHATSAPP_API_URL}/${sessionId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `OAuth ${token}`, 'file_offset': fileOffset.toString(), 'Content-Type': mimeType },
+        body: buffer,
+    });
+    const uploadData = await uploadRes.json();
+    if (!uploadRes.ok) throw new Error(formatMetaError(uploadData, 'Failed to upload media chunk'));
+    return uploadData;
 }
 
 /**
@@ -692,5 +719,5 @@ export default {
     normalizePhone, sendTemplateMessage, sendTextMessage, sendMediaMessage, sendInteractiveMessage,
     getMediaUrl, sendBulkMessages, uploadMediaForTemplate, createTemplate,
     editTemplate, fetchTemplates, deleteTemplate, getTemplateDefinition,
-    syncProductToMeta, deleteProductFromMeta,
+    syncProductToMeta, deleteProductFromMeta, startUploadSession, uploadChunkToMeta
 };
