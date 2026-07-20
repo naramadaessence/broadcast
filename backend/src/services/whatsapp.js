@@ -549,7 +549,7 @@ export async function fetchTemplates(tenant) {
  * Edit an existing WhatsApp template (Meta API: POST /{template_id})
  * Only components can be edited — name, category, language cannot change.
  */
-export async function editTemplate(templateId, { bodyText, headerMediaHandle, headerFormat = 'IMAGE', footerText, buttons = [] }, tenant) {
+export async function editTemplate(templateId, { bodyText, headerMediaHandle, existingHeaderExample, headerFormat = 'IMAGE', footerText, buttons = [] }, tenant) {
     const { token, wabaId } = getCredentials(tenant);
     if (!wabaId) throw new Error('WhatsApp Business Account ID not configured.');
 
@@ -557,6 +557,8 @@ export async function editTemplate(templateId, { bodyText, headerMediaHandle, he
 
     if (headerMediaHandle) {
         components.push({ type: 'HEADER', format: headerFormat, example: { header_handle: [headerMediaHandle] } });
+    } else if (existingHeaderExample) {
+        components.push({ type: 'HEADER', format: headerFormat, example: existingHeaderExample });
     }
 
     const bodyComponent = { type: 'BODY', text: bodyText };

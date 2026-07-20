@@ -34,6 +34,7 @@ export default function WhatsAppBroadcast() {
     const [editMediaFile, setEditMediaFile] = useState(null);
     const [editMediaPreview, setEditMediaPreview] = useState(null);
     const [editMediaFormat, setEditMediaFormat] = useState('IMAGE');
+    const [editExistingHeaderExample, setEditExistingHeaderExample] = useState(null);
     const [editSaving, setEditSaving] = useState(false);
 
     const addButton = (type) => {
@@ -286,8 +287,11 @@ export default function WhatsAppBroadcast() {
 
         // If header is an image or video, show the existing URL as preview
         if (headerComp?.format === 'IMAGE' || headerComp?.format === 'VIDEO') {
+            setEditExistingHeaderExample(headerComp.example || null);
             const existingUrl = headerComp.example?.header_handle?.[0] || headerComp.example?.header_url?.[0];
             if (existingUrl) setEditMediaPreview(existingUrl);
+        } else {
+            setEditExistingHeaderExample(null);
         }
     };
 
@@ -297,8 +301,11 @@ export default function WhatsAppBroadcast() {
         setEditSaving(true);
         try {
             let headerMediaHandle = null;
+            let existingHeaderExample = null;
             if (editMediaFile) {
                 headerMediaHandle = await uploadTemplateMedia(editMediaFile);
+            } else {
+                existingHeaderExample = editExistingHeaderExample;
             }
             const buttons = editButtons.filter(b => b.text?.trim()).map(b => ({
                 type: b.type,
@@ -309,6 +316,7 @@ export default function WhatsAppBroadcast() {
             await editWhatsAppTemplate(editingTemplate.id, {
                 bodyText: editBody,
                 headerMediaHandle,
+                existingHeaderExample,
                 headerFormat: editMediaFormat,
                 footerText: editFooter || null,
                 buttons,

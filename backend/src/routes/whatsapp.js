@@ -410,13 +410,14 @@ router.post('/templates', async (req, res) => {
  */
 router.put('/templates/:id', async (req, res) => {
     try {
-        const { bodyText, headerImageHandle, headerMediaHandle, headerFormat, footerText, buttons } = req.body;
+        const { id } = req.params;
+        const { bodyText, headerMediaHandle, existingHeaderExample, headerFormat, footerText, buttons } = req.body;
         if (!bodyText) return res.status(400).json({ error: 'Body text is required' });
 
-        const handle = headerMediaHandle || headerImageHandle;
-        const result = await editTemplate(req.params.id, {
+        const result = await editTemplate(id, {
             bodyText,
-            headerMediaHandle: handle || null,
+            headerMediaHandle: headerMediaHandle || null,
+            existingHeaderExample: existingHeaderExample || null,
             headerFormat: headerFormat || 'IMAGE',
             footerText: footerText || null,
             buttons: buttons || [],
