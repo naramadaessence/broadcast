@@ -5,6 +5,8 @@
 - Updated `frontend/src/stores/store.js` (`uploadTemplateMedia`) to split large media files into 4MB chunks and upload them sequentially.
 - Created `POST /api/v1/whatsapp/templates/upload-media/session` and `POST /api/v1/whatsapp/templates/upload-media/chunk` in `backend/src/routes/whatsapp.js` to proxy chunked uploads directly to Meta's Resumable Upload API.
 - Replaced the temporary 4.5MB file size limit in `frontend/src/components/WhatsAppBroadcast.jsx` with Meta's actual 16MB limit for video templates.
+- Fixed a `multer` parsing bug where `fileOffset` was undefined by ensuring the frontend appends text fields to `FormData` *before* the file blob.
+- Added logic to dynamically use Meta's returned `file_offset` for the next chunk instead of blindly calculating it.
 **Why**: 
 - Users need to upload videos up to 16MB (Meta's limit) for broadcast templates, but Vercel's Serverless Functions enforce a hard 4.5MB limit on request bodies. By chunking the file into 4MB pieces on the frontend and proxying those chunks through the backend directly into Meta's Resumable Upload session, we bypass the Vercel limit entirely and support full-size 15MB/16MB videos securely.
 **Files Changed**:

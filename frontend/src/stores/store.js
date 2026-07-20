@@ -517,13 +517,20 @@ export const useStore = create(
                 while (offset < mediaFile.size) {
                     const chunk = mediaFile.slice(offset, offset + CHUNK_SIZE, mediaFile.type);
                     const formData = new FormData();
-                    formData.append('chunk', chunk, mediaFile.name);
+                    // IMPORTANT: Append text fields BEFORE the file so multer parses them correctly
                     formData.append('sessionId', sessionId);
                     formData.append('fileOffset', offset.toString());
+                    formData.append('chunk', chunk, mediaFile.name);
 
                     const res = await apiUpload('/whatsapp/templates/upload-media/chunk', formData);
                     lastResult = res.result;
-                    offset += CHUNK_SIZE;
+                    
+                    // Use Meta's returned offset if available, otherwise just add CHUNK_SIZE
+                    if (res.result && typeof res.result.file_offset !== 'undefined') {
+                        offset = res.result.file_offset;
+                    } else {
+                        offset += CHUNK_SIZE;
+                    }
                 }
 
                 return lastResult?.h;
