@@ -430,19 +430,18 @@ export async function startUploadSession(fileLength, mimeType, fileName, tenant)
 export async function uploadChunkToMeta(sessionId, fileOffset, buffer, mimeType, tenant) {
     const { token } = getCredentials(tenant);
     
-    // Pass file_offset in the query string to bypass potential header dropping on Meta's end
-    // Also include it in headers just in case. Use raw Buffer for body to avoid multipart corruption.
-    const uploadUrl = `${WHATSAPP_API_URL}/${sessionId}?file_offset=${fileOffset}`;
+    // Extract pure ArrayBuffer from Node.js Buffer to guarantee native fetch binary streaming
+    const rawBytes = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     
-    const uploadRes = await fetch(uploadUrl, {
+    const uploadRes = await fetch(`${WHATSAPP_API_URL}/${sessionId}`, {
         method: 'POST',
         headers: { 
             'Authorization': `OAuth ${token}`,
             'file_offset': fileOffset.toString(),
-            'Content-Length': buffer.length.toString(),
+            'Content-Length': rawBytes.byteLength.toString(),
             'Content-Type': mimeType || 'application/octet-stream'
         },
-        body: buffer,
+        body: rawBytes,
     });
     const textData = await uploadRes.text();
     let uploadData;
