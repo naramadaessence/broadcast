@@ -428,10 +428,15 @@ export async function startUploadSession(fileLength, mimeType, fileName, tenant)
  */
 export async function uploadChunkToMeta(sessionId, fileOffset, buffer, mimeType, tenant) {
     const { token } = getCredentials(tenant);
+    
+    const formData = new FormData();
+    formData.append('file_offset', fileOffset.toString());
+    formData.append('file', new Blob([buffer], { type: mimeType }), 'chunk');
+
     const uploadRes = await fetch(`${WHATSAPP_API_URL}/${sessionId}`, {
         method: 'POST',
-        headers: { 'Authorization': `OAuth ${token}`, 'file_offset': fileOffset.toString(), 'Content-Type': mimeType },
-        body: new Uint8Array(buffer),
+        headers: { 'Authorization': `OAuth ${token}` },
+        body: formData,
     });
     const textData = await uploadRes.text();
     let uploadData;

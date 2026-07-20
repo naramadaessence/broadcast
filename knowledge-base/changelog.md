@@ -7,6 +7,7 @@
 - Replaced the temporary 4.5MB file size limit in `frontend/src/components/WhatsAppBroadcast.jsx` with Meta's actual 16MB limit for video templates.
 - Fixed a `multer` parsing bug where `fileOffset` was undefined by ensuring the frontend appends text fields to `FormData` *before* the file blob.
 - Added logic to dynamically use Meta's returned `file_offset` for the next chunk instead of blindly calculating it.
+- **Critical Fix**: Switched the backend's Meta API call from raw binary to `multipart/form-data`. Meta's servers were mysteriously dropping or ignoring the `file_offset` HTTP header (causing it to default to `0` for the second chunk). Moving `file_offset` into the multipart body payload completely bypassed this issue.
 **Why**: 
 - Users need to upload videos up to 16MB (Meta's limit) for broadcast templates, but Vercel's Serverless Functions enforce a hard 4.5MB limit on request bodies. By chunking the file into 4MB pieces on the frontend and proxying those chunks through the backend directly into Meta's Resumable Upload session, we bypass the Vercel limit entirely and support full-size 15MB/16MB videos securely.
 **Files Changed**:
