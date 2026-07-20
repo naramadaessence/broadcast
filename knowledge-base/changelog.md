@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-20 — Fix 413 Payload Too Large Error on Template Media Upload
+**What**: 
+- Updated `frontend/src/stores/store.js` (`apiUpload`) to gracefully handle non-JSON HTML error responses (specifically HTTP 413 Payload Too Large) from the server instead of throwing a JSON parse exception (`Unexpected token 'R'`).
+- Added a 4.5MB file size limit check in `frontend/src/components/WhatsAppBroadcast.jsx` (`handleMediaSelect` and `handleEditMediaSelect`) to proactively prevent users from selecting media larger than Vercel's serverless payload limit.
+**Why**: 
+- Users were uploading videos larger than 4.5MB. Vercel's Edge/Serverless architecture has a hard limit of 4.5MB for request bodies. When exceeded, Vercel returns an HTML page starting with "Request Entity Too Large", which caused the frontend JSON parser to crash and show an unhelpful error toast (`Unexpected token 'R'`). The client-side check prevents this and provides a clear constraint to the user.
+**Files Changed**:
+- `frontend/src/stores/store.js`
+- `frontend/src/components/WhatsAppBroadcast.jsx`
+- `knowledge-base/changelog.md`
+
 ## 2026-07-20 — Add Pagination to Manual Contact Selection in WhatsApp Broadcast
 **What**: 
 - Updated `frontend/src/components/WhatsAppBroadcast.jsx` to support pagination when picking contacts manually for a broadcast.

@@ -91,8 +91,17 @@ const apiUpload = async (path, formData) => {
     });
 
     if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Upload failed');
+        if (res.status === 413) {
+            throw new Error('File is too large. Server limits uploads to 4.5MB.');
+        }
+        let err;
+        try {
+            err = await res.json();
+        } catch (e) {
+            const text = await res.text();
+            throw new Error(`Upload failed (${res.status}): Server returned invalid response.`);
+        }
+        throw new Error(err?.error || 'Upload failed');
     }
     return res.json();
 };
