@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-21 — Restore Missing Campaign Control Endpoints (Pause/Resume/Cancel)
+**What**:
+- Added `POST /api/v1/whatsapp/campaigns/:id/:action` endpoint to handle manual pausing, resuming, and cancelling of active broadcasts from the frontend UI.
+**Why**:
+- The "Cancel" button on the UI was failing with a `Cannot POST` error because the endpoint was accidentally removed in a previous refactor. Restoring this endpoint allows users to safely stop massive broadcasts (like 200+ recipients) midway if they realize they made a mistake.
+**Files Changed**:
+- `backend/src/routes/whatsapp.js`
+- `knowledge-base/changelog.md`
+
 ## 2026-07-21 — Fix WhatsApp Broadcast Throughput & Vercel Timeouts
 **What**: 
 - Fixed a concurrency issue where `sendBulkMessages` was hitting Meta API rate limits by sending batches of 50 simultaneously. Messages are now sent sequentially.

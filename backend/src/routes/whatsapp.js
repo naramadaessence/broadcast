@@ -336,6 +336,37 @@ router.get('/campaigns/:id', async (req, res) => {
 });
 
 /**
+ * POST /api/v1/whatsapp/campaigns/:id/:action
+ */
+router.post('/campaigns/:id/:action', async (req, res) => {
+    try {
+        const { id, action } = req.params;
+        const campaign = await WhatsAppCampaign.findById(id);
+        if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+        if (action === 'pause') {
+            campaign.status = 'paused';
+        } else if (action === 'resume') {
+            campaign.status = 'processing';
+        } else if (action === 'cancel') {
+            campaign.status = 'cancelled';
+            await WhatsAppMessage.updateMany(
+                { campaign_id: id, status: 'pending' },
+                { $set: { status: 'failed', error_message: 'Cancelled by user' } }
+            );
+            const failCount = await WhatsAppMessage.countDocuments({ campaign_id: id, status: 'failed' });
+            campaign.failed_count = failCount;
+        }
+
+        await campaign.save();
+        res.json({ success: true, status: campaign.status });
+    } catch (error) {
+        console.error('Campaign control error:', error);
+        res.status(500).json({ error: 'Failed to update campaign' });
+    }
+});
+
+/**
  * POST /api/v1/whatsapp/templates/upload-media
  * Legacy single-payload upload
  */
