@@ -323,7 +323,7 @@ router.post('/campaigns/:id/process-batch', auth, async (req, res) => {
             console.error(`[Broadcast #${campaignId}] Failed to update campaign status:`, dbErr.message);
         }
     }
-}
+});
 
 /**
  * GET /api/v1/whatsapp/campaigns
