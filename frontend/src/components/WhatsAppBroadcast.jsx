@@ -212,7 +212,7 @@ export default function WhatsAppBroadcast() {
         try {
             await controlWhatsAppCampaign(campaign.id, action);
             showToast(`Campaign ${action === 'cancel' ? 'cancelled' : action === 'pause' ? 'paused' : action === 'retry-failed' ? 'retrying' : 'resumed'}`);
-            if (selectedCampaign === campaign.id || (campaignDetail && campaignDetail.id === campaign.id)) {
+            if (campaignDetail && campaignDetail.id === campaign.id) {
                 viewCampaign(campaign.id);
             }
             fetchWhatsAppCampaigns();

@@ -13,6 +13,15 @@
 - `frontend/src/components/WhatsAppBroadcast.jsx`
 - `knowledge-base/changelog.md`
 
+## 2026-07-21 — Fix ReferenceError in Retry Feature
+**What**: 
+- Fixed `selectedCampaign is not defined` error when clicking the "Retry Failed Messages" button in the Campaign Detail modal.
+**Why**: 
+- An obsolete variable reference in the success callback crashed the frontend when attempting to refresh the modal data.
+**Files Changed**:
+- `frontend/src/components/WhatsAppBroadcast.jsx`
+- `knowledge-base/changelog.md`
+
 ## 2026-07-21 — Restore Missing Campaign Control Endpoints (Pause/Resume/Cancel)
 **What**:
 - Added `POST /api/v1/whatsapp/campaigns/:id/:action` endpoint to handle manual pausing, resuming, and cancelling of active broadcasts from the frontend UI.
