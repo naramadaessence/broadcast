@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-21 — Add Missing Campaign Control Endpoints (Pause/Resume/Cancel)
+**What**:
+- Added `POST /api/v1/whatsapp/campaigns/:id/:action` endpoint to handle manual pausing, resuming, and cancelling of active broadcasts.
+- Updated the backend `process-batch` endpoint to safely halt processing and return `paused: true` if a campaign is interrupted mid-broadcast.
+- Modified the frontend `WhatsAppBroadcast.jsx` so that the `handleCampaignControl` successfully restarts the background chunking loop when a user clicks the "Resume" button.
+**Why**:
+- The new batch polling architecture bypassed Vercel's timeouts but inadvertently orphaned the UI's manual Pause/Cancel buttons since those API endpoints were missing from the new monolithic route setup. 
+- Restoring these endpoints allows users to safely stop massive broadcasts (like 200+ recipients) midway if they realize they made a mistake, without crashing the frontend loop.
+**Files Changed**:
+- `backend/src/routes/whatsapp.js`
+- `frontend/src/components/WhatsAppBroadcast.jsx`
+- `knowledge-base/changelog.md`
+
 ## 2026-07-21 — Implement Frontend Batch Polling for WhatsApp Broadcasts (Vercel Fix)
 **What**:
 - Modified `POST /api/v1/whatsapp/broadcast` to only create the `WhatsAppCampaign` and insert pending `WhatsAppMessage` records, rather than processing them synchronously.
