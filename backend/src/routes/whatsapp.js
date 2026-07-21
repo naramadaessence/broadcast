@@ -229,6 +229,10 @@ router.post('/campaigns/:id/process-batch', auth, async (req, res) => {
         if (campaign.status === 'completed' || campaign.status === 'cancelled') {
             return res.json({ completed: true, processed: 0, pending: 0 });
         }
+        
+        if (campaign.status === 'paused') {
+            return res.json({ completed: true, paused: true, processed: 0, pending: 0 });
+        }
 
         const BATCH_LIMIT = 15; // Small batch to easily fit inside Vercel's 10s limit
         const pendingMessages = await WhatsAppMessage.find({
@@ -360,6 +364,53 @@ router.get('/campaigns/:id', async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch campaign details' });
+    }
+});
+
+/**
+ * POST /api/v1/whatsapp/campaigns/:id/:action
+ * action: pause, resume, cancel
+ */
+router.post('/campaigns/:id/:action', auth, async (req, res) => {
+    try {
+        const { id, action } = req.params;
+        const validActions = {
+            'pause': 'paused',
+            'resume': 'processing',
+            'cancel': 'cancelled'
+        };
+
+        if (!validActions[action]) {
+            return res.status(400).json({ error: 'Invalid action' });
+        }
+
+        const campaign = await WhatsAppCampaign.findById(id);
+        if (!campaign) {
+            return res.status(404).json({ error: 'Campaign not found' });
+        }
+        
+        // Prevent modifying completed campaigns
+        if (campaign.status === 'completed') {
+            return res.status(400).json({ error: 'Campaign is already completed' });
+        }
+
+        campaign.status = validActions[action];
+        if (action === 'cancel') {
+            // fail all pending messages if cancelled
+            await WhatsAppMessage.updateMany(
+                { campaign_id: campaign._id, status: 'pending' },
+                { status: 'failed', error_message: 'Campaign cancelled' }
+            );
+            const failCount = await WhatsAppMessage.countDocuments({ campaign_id: campaign._id, status: 'failed' });
+            campaign.failed_count = failCount;
+        }
+
+        await campaign.save();
+
+        res.json({ success: true, status: campaign.status });
+    } catch (error) {
+        console.error('Campaign control error:', error);
+        res.status(500).json({ error: 'Failed to update campaign' });
     }
 });
 

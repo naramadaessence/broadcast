@@ -200,7 +200,9 @@ export default function WhatsAppBroadcast() {
                         const batchRes = await processWhatsAppBatch(result.campaignId);
                         if (batchRes.completed) {
                             isCompleted = true;
-                            showToast(`Broadcast completed: ${batchRes.successCount} sent, ${batchRes.failCount} failed.`);
+                            if (!batchRes.paused) {
+                                showToast(`Broadcast completed: ${batchRes.successCount} sent, ${batchRes.failCount} failed.`);
+                            }
                         }
                         fetchWhatsAppCampaigns(); // Update UI list
                         if (selectedCampaign === result.campaignId) {
@@ -232,6 +234,28 @@ export default function WhatsAppBroadcast() {
         try {
             await controlWhatsAppCampaign(campaign.id, action);
             showToast(`Campaign ${action === 'cancel' ? 'cancelled' : action === 'pause' ? 'paused' : 'resumed'}`);
+            if (action === 'resume') {
+                showToast(`Resuming broadcast...`);
+                let isCompleted = false;
+                while (!isCompleted) {
+                    try {
+                        const batchRes = await processWhatsAppBatch(campaign.id);
+                        if (batchRes.completed) {
+                            isCompleted = true;
+                            if (!batchRes.paused) {
+                                showToast(`Broadcast completed: ${batchRes.successCount} sent, ${batchRes.failCount} failed.`);
+                            }
+                        }
+                        fetchWhatsAppCampaigns();
+                        if (selectedCampaign === campaign.id) {
+                            fetchWhatsAppCampaignDetail(campaign.id);
+                        }
+                    } catch (batchErr) {
+                        console.error('Batch error:', batchErr);
+                        isCompleted = true;
+                    }
+                }
+            }
         } catch (err) {
             showToast(err.message, 'error');
         }
