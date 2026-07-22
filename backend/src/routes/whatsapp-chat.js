@@ -261,8 +261,8 @@ router.post('/conversations/new', async (req, res) => {
 
 router.get('/conversations', async (req, res) => {
     try {
-        const { search, archived = '0', page = 1, limit = 30, paid, needs_human } = req.query;
-        const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 30, 1), 100);
+        const { search, archived = '0', page = 1, limit = 500, paid, needs_human } = req.query;
+        const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 500, 1), 1000);
         const safePage = Math.max(parseInt(page, 10) || 1, 1);
         const offset = (safePage - 1) * safeLimit;
 

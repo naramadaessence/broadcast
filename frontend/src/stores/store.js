@@ -589,6 +589,7 @@ export const useStore = create(
             fetchConversations: async (search = '', filter = 'all') => {
                 try {
                     const url = new URL('/whatsapp/chat/conversations', window.location.origin);
+                    url.searchParams.set('limit', '500');
                     if (search) url.searchParams.set('search', search);
                     if (filter && filter !== 'all') url.searchParams.set('filter', filter);
 
