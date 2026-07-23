@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-23 — Fix Mobile Conversation List Scroll
+**What**: Fixed an issue where the conversation list inside the Chat Inbox would not scroll on mobile devices.
+**Why**: Flexbox containers (`.chat-sidebar`) were using `min-height` instead of fixed heights on mobile, which caused them to expand indefinitely to fit content, preventing the inner `.chat-conversation-list` (with `overflow-y: auto`) from triggering its scrollbar.
+**Files Changed**:
+- `frontend/src/styles/main.css` — Replaced `min-height` with constrained `height`/`max-height` and `overflow: hidden` on sidebar containers, added `-webkit-overflow-scrolling: touch` for smooth scrolling.
+- `knowledge-base/changelog.md`
+
+## 2026-07-22 — Show All Conversations in Sidebar
+**What**: Increased the conversation list limit from 30 to 500 so all conversations appear in the left sidebar.
+**Why**: Only ~30 conversations were visible despite having 399 total. The backend was paginating with a default limit of 30 (max 100), and the frontend never requested additional pages.
+**Fix**: Changed backend default limit from 30→500 (max 1000) and added explicit `limit=500` parameter in the frontend fetch call.
+**Files Changed**:
+- `backend/src/routes/whatsapp-chat.js` — Increased default limit and max cap
+- `frontend/src/stores/store.js` — Added `limit=500` query parameter
+- `knowledge-base/changelog.md`
+
 ## 2026-07-22 — Fix "Load Older Messages" in Chat Inbox
 **What**: Fixed two bugs that made the "Load Older Messages" button non-functional:
 1. Polling (every 5s) was calling `fetchChatMessages` which replaced the entire message list with only the latest 50, wiping out any older messages the user had just loaded.
