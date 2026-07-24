@@ -146,6 +146,7 @@ For authenticated checks, log in with the client admin credentials and verify:
 | Bot test returns no match | No FAQs/products or no text overlap | Add FAQs/products and use Re-embed if local vectors are missing |
 | Embedding re-embed returns 400 | Unknown model key | Select one of the listed local models and retry |
 | Browser opens dashboard from old state | Stale local storage | Current app validates `/auth/me`; clear site data if testing old bundles |
+| Hostinger deploy fails with `EBADENGINE` | Dependency requires Node >18 | Hostinger runs Node v18.x; downgrade the offending package (e.g. mongoose 9→8) |
 
 ## What Not To Do
 

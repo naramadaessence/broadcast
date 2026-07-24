@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-24 — Fix Hostinger Deployment (Node 18 Compatibility)
+**What**: Downgraded `mongoose` from `^9.7.2` to `^8.13.0` and `transliteration` from `^2.6.1` to `^2.3.5` to fix deployment on Hostinger.
+**Why**: Hostinger runs Node v18.20.8, but mongoose 9.x, mongodb 7.x, bson 7.x, and transliteration 2.6.x all require Node >=20.19.0. The `EBADENGINE` warnings caused the deployment to fail. Mongoose v8 is API-compatible with the project's usage patterns.
+**Files Changed**:
+- `backend/package.json` — Downgraded mongoose and transliteration versions
+- `backend/package-lock.json` — Regenerated
+- `knowledge-base/changelog.md`
+
 ## 2026-07-23 — Fix Vercel Deployment Configuration
 **What**: Fixed the Vercel auto-deploy by correcting the `vercel.json` configuration.
 **Why**: The previous configuration used an invalid/unsupported `experimentalServices` property, which causes Vercel builds to fail. It was replaced with the standard `builds` and `rewrites` configuration to correctly deploy the frontend (Vite) and backend (Express API) in a single Vercel project.
